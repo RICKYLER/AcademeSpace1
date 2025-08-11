@@ -1,0 +1,49 @@
+Scenario: Tech Explanation + Visualization
+
+Prompt: Explain artificial intelligence in simple terms. What are the main types of AI?
+
+Response:
+I'll break down artificial intelligence (AI) in simple terms and explain the main types of AI.
+
+**What is Artificial Intelligence (AI)?**
+
+Artificial intelligence refers to the development of computer systems that can perform tasks that typically require human intelligence, such as:
+
+* Learning
+* Problem-solving
+* Reasoning
+* Perception
+* Understanding language
+
+In other words, AI is a way to create machines that can think and act like humans, but with the ability to process and analyze vast amounts of data much faster and more accurately.
+
+**Main Types of AI:**
+
+There are several types of AI, which can be categorized into three main groups:
+
+1. **Narrow or Weak AI**: This type of AI is designed to perform a specific task, such as:
+	* Image recognition
+	* Speech recognition
+	* Language translation
+	* Playing chess or other games
+	* Virtual assistants (e.g., Siri, Alexa)
+2. **General or Strong AI**: This type of AI is designed to perform any intellectual task that a human can, such as:
+	* Reasoning and problem-solving
+	* Learning and adapting
+	* Understanding and generating human language
+	* Recognizing and responding to emotions
+	* Currently, general AI is still in the development stage and has not been fully achieved.
+3. **Superintelligence**: This type of AI is significantly more intelligent than the best human minds, with capabilities that far exceed human intelligence, such as:
+	* Exponential learning and improvement
+	* Ability to solve complex problems that are currently unsolvable by humans
+	* Potential to surpass human control and pose existential risks (a topic of ongoing debate and research)
+
+Additionally, there are other types of AI, such as:
+
+* **Machine Learning (ML)**: A subset of AI that involves training algorithms to learn from data and improve their performance over time.
+* **Deep Learning (DL)**: A subset of ML that uses neural networks to analyze and interpret complex data, such as images, speech, and text.
+* **Natural Language Processing (NLP)**: A subset of AI that deals with the interaction between computers and humans in natural language.
+
+These categories are not mutually exclusive, and many AI systems combine elements from multiple categories to achieve their goals.
+
+I hope this explanation helps you understand the basics of artificial intelligence and its various types!

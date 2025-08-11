@@ -1,13 +1,22 @@
 
-import React, { useState } from 'react';
-import { X, Users, BookOpen, Calendar, Clock } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  hostName: string;
+  onCreate: (data: {
+    name: string;
+    subject: string;
+    description: string;
+    maxMembers: number;
+    schedule: string;
+    difficulty: string;
+  }) => void;
 }
 
-const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) => {
+const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, hostName, onCreate }) => {
   const [formData, setFormData] = useState({
     name: '',
     subject: '',
@@ -16,14 +25,14 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) 
     schedule: '',
     difficulty: 'Beginner'
   });
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Creating study group:', formData);
-    onClose();
+    // Propagate to parent; parent decides what to do next (close, show toast, etc.)
+    onCreate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -34,17 +43,32 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) 
     }));
   };
 
+  // Close on ESC
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  // Close on click outside
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" onMouseDown={handleOverlayClick}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="create-group-title" className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 id="create-group-title" className="text-xl font-semibold text-gray-900 dark:text-white">
             Create Study Group
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Close create group modal"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -165,7 +189,8 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) 
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-60"
+              disabled={!formData.name || !formData.subject || !formData.description || !formData.schedule}
             >
               Create Group
             </button>

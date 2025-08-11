@@ -26,3 +26,8 @@ dist-ssr
 .env
 test-new-endpoint.js
 test-real-api.js
+
+# Environment files
+.env
+.env.local
+.env.backup

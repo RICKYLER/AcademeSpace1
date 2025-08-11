@@ -1,0 +1,32 @@
+{
+  "rules": {
+    "messages": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$messageId": {
+        ".validate": "newData.hasChildren(['sender', 'content', 'timestamp'])"
+      }
+    },
+    "conversations": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$userId": {
+        ".write": "auth != null && auth.uid == $userId"
+      }
+    },
+    "typing": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "presence": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $userId"
+      }
+    }
+  }
+} 

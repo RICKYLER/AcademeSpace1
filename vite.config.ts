@@ -16,10 +16,13 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "@components": path.resolve(__dirname, "./src/components"),
       },
     },
     define: {
       'import.meta.env.VITE_FORGE_KEY': JSON.stringify(env.FORGE_KEY),
+      'import.meta.env.VITE_VENICE_IMAGE_API_KEY': JSON.stringify(env.VITE_VENICE_IMAGE_API_KEY),
+      'import.meta.env.VITE_PHOTO_API_KEY': JSON.stringify(env.VITE_PHOTO_API_KEY),
     },
   };
 });

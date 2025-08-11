@@ -1,6 +1,7 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ethers } from 'ethers';
+import safeWalletProvider from '../utils/safeWalletProvider';
 
 interface WalletState {
   account: string | null;
@@ -22,24 +23,28 @@ export const useEthereumWallet = () => {
   const isConnected = useMemo(() => !!walletState.account, [walletState.account]);
 
   const connectWallet = useCallback(async () => {
-    if (!(window as any).ethereum) {
-      setWalletState(prev => ({ ...prev, error: 'Please install MetaMask!' }));
-      return;
-    }
-
     setWalletState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const accounts = await provider.send('eth_requestAccounts', []);
+      // Use the safe wallet provider
+      const accounts = await safeWalletProvider.requestAccounts();
+      
+      if (accounts.length === 0) {
+        throw new Error('No accounts found');
+      }
+
       const account = accounts[0];
       
-      const balance = await provider.getBalance(account);
+      // Get balance using the safe provider
+      const balanceHex = await safeWalletProvider.getBalance(account);
+      const balance = ethers.parseUnits(balanceHex, 'wei');
       const formattedBalance = parseFloat(ethers.formatEther(balance)).toFixed(4);
 
       // Try to resolve ENS name
       let ensName = null;
       try {
+        // Create a provider for ENS resolution
+        const provider = new ethers.BrowserProvider(window.ethereum);
         ensName = await provider.lookupAddress(account);
       } catch (error) {
         // ENS resolution failed, which is fine
@@ -53,11 +58,12 @@ export const useEthereumWallet = () => {
         isConnecting: false,
         error: null,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Wallet connection error:', error);
       setWalletState(prev => ({
         ...prev,
         isConnecting: false,
-        error: 'Failed to connect wallet',
+        error: error.message || 'Failed to connect wallet',
       }));
     }
   }, []);
@@ -71,6 +77,26 @@ export const useEthereumWallet = () => {
       error: null,
     });
   }, []);
+
+  // Listen for account changes
+  useEffect(() => {
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        // User disconnected their wallet
+        disconnectWallet();
+      } else {
+        // User switched accounts
+        setWalletState(prev => ({ ...prev, account: accounts[0] }));
+      }
+    };
+
+    // Set up event listeners using the safe provider
+    safeWalletProvider.setupEventListeners(handleAccountsChanged);
+
+    return () => {
+      safeWalletProvider.removeEventListeners(handleAccountsChanged);
+    };
+  }, [disconnectWallet]);
 
   return {
     ...walletState,

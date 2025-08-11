@@ -48,9 +48,9 @@ const SkillsSection: React.FC = () => {
                     {skill.level}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"
                     style={{ width: `${skill.level}%` }}
                   ></div>
                 </div>
@@ -68,7 +68,7 @@ const SkillsSection: React.FC = () => {
             {softSkills.map((skill, index) => (
               <span
                 key={index}
-                className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm"
+                className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 {skill}
               </span>

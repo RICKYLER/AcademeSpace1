@@ -1,0 +1,37 @@
+Scenario: Travel Guide + Destination
+
+Prompt: Give me travel tips for visiting Venice, Italy. Include the best time to visit and must-see attractions.
+
+Response:
+Venice, Italy - the City of Water. Known for its breathtaking canals, stunning architecture, and rich history, Venice is a destination that should be on every traveler's bucket list. Here are some travel tips to help you make the most of your visit:
+
+**Best Time to Visit:**
+The best time to visit Venice is during the spring (April-May) and autumn (September-October). These periods offer mild weather, fewer crowds, and lower prices compared to the peak summer months. If you're looking for a unique experience, consider visiting during the Carnival of Venice (February-March), which is a colorful and lively event.
+
+**Must-See Attractions:**
+
+1. **St. Mark's Basilica** (Basilica di San Marco): A stunning example of Byzantine architecture, this basilica is famous for its intricate mosaics and golden domes.
+2. **Grand Canal** (Canal Grande): Take a romantic gondola ride or vaporetto (water bus) along the Grand Canal to admire the city's stunning architecture and bridges.
+3. **Doge's Palace** (Palazzo Ducale): The former residence of the Doge of Venice, this palace is a masterpiece of Gothic architecture and offers breathtaking views of the lagoon.
+4. **Rialto Bridge** (Ponte di Rialto): This iconic bridge is a great spot to take in the views of the Grand Canal and shop for souvenirs.
+5. **San Giorgio Maggiore**: This small island offers stunning views of the city and is home to a beautiful church designed by Palladio.
+6. **Murano and Burano**: Take a day trip to these nearby islands to see traditional glassblowing and lace-making techniques.
+7. **Campo Santa Marina**: This charming square is a great place to relax and enjoy the local atmosphere.
+
+**Additional Tips:**
+
+1. **Get Lost**: Venice is a city that's best explored on foot. Get lost in the narrow streets and discover hidden gems, such as small canals, charming piazzas, and local trattorias.
+2. **Avoid Tourist Traps**: Be mindful of overpriced restaurants and shops in tourist areas. Instead, opt for local eateries and markets, such as the Rialto Market.
+3. **Respect the City**: Venice is a fragile city, so be sure to respect its environment and residents. Avoid littering, and don't touch or damage the historic buildings and bridges.
+4. **Buy a Venice City Pass**: This pass grants you access to many attractions, public transportation, and discounts at local businesses.
+5. **Be Prepared for Crowds**: Venice can be very crowded, especially during peak season. Be patient, and consider visiting popular attractions early in the morning or later in the evening.
+6. **Try Local Cuisine**: Be sure to try some of Venice's famous dishes, such as seafood risotto, fegato alla veneziana (Venetian-style liver and onions), and cicchetti (small snacks).
+7. **Learn Some Italian**: While many Venetians speak English, it's always appreciated when visitors make an effort to speak the local language.
+
+**Practical Information:**
+
+1. **Getting There**: The closest airport is Venice Marco Polo Airport (VCE), which is connected to the city center by bus and water taxi.
+2. **Accommodation**: Venice has a wide range of accommodations, from budget-friendly hostels to luxury hotels. Consider staying in a central location, such as San Marco or Cannaregio.
+3. **Transportation**: The best way to get around Venice is on foot or by vaporetto. You can also take a water taxi or gondola for a more romantic experience.
+
+By following these tips, you'll be well on your way to having a memorable and enjoyable trip to Venice, Italy. Buon viaggio!

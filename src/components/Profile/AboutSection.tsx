@@ -45,9 +45,16 @@ const AboutSection: React.FC = () => {
             </div>
           </div>
         ) : (
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            {about}
-          </p>
+          <div className="space-y-3">
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              {about}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2.5 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Machine Learning</span>
+              <span className="px-2.5 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Open Source</span>
+              <span className="px-2.5 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Hackathons</span>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

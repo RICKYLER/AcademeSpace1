@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { MapPin, Calendar, BookOpen, Edit3 } from 'lucide-react';
+import { MapPin, Calendar, BookOpen, Edit3, MessageCircle, UserPlus, ShieldCheck } from 'lucide-react';
 import ProfileEditDialog from './ProfileEditDialog';
 import { useProfile } from '../../contexts/ProfileContext';
 
@@ -49,6 +49,18 @@ const ProfileHeader: React.FC = () => {
                 <p className="text-base md:text-lg text-gray-600 dark:text-gray-300">
                   Computer Science Student
                 </p>
+                {/* Badges */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">
+                    <ShieldCheck className="w-3 h-3" /> Verified Student
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                    Open to collaborate
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
+                    Available for mentorship
+                  </span>
+                </div>
               </div>
               
               {/* Stats - Horizontal scroll on mobile */}
@@ -67,6 +79,18 @@ const ProfileHeader: React.FC = () => {
                 </div>
               </div>
               
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2">
+                <button className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                  <UserPlus className="w-4 h-4" />
+                  Connect
+                </button>
+                <button className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                  <MessageCircle className="w-4 h-4" />
+                  Message
+                </button>
+              </div>
+
               {/* Quick Info - Stack on mobile */}
               <div className="flex flex-col md:flex-row md:flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center space-x-1">

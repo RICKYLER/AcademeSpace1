@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, Calendar, BookOpen, Star } from 'lucide-react';
+import { Users, Calendar, Star, User } from 'lucide-react';
 
 interface StudyGroup {
   id: number;
@@ -12,13 +12,16 @@ interface StudyGroup {
   schedule: string;
   difficulty: string;
   isJoined: boolean;
+  hostName: string;
 }
 
 interface StudyGroupCardProps {
   group: StudyGroup;
+  onView: (group: StudyGroup) => void;
+  onJoinToggle: (group: StudyGroup) => void;
 }
 
-const StudyGroupCard: React.FC<StudyGroupCardProps> = ({ group }) => {
+const StudyGroupCard: React.FC<StudyGroupCardProps> = ({ group, onView, onJoinToggle }) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Beginner':
@@ -33,7 +36,13 @@ const StudyGroupCard: React.FC<StudyGroupCardProps> = ({ group }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6 hover:shadow-md transition-shadow touch-manipulation">
+    <div className="group relative bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6 hover:shadow-md transition-all touch-manipulation">
+      {/* Trending badge example */}
+      {!group.isJoined && group.members / group.maxMembers > 0.7 && (
+        <span className="absolute -top-2 -right-2 text-[10px] px-2 py-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-800 shadow-sm">
+          Trending
+        </span>
+      )}
       {/* Header */}
       <div className="flex justify-between items-start mb-3 md:mb-4">
         <div className="flex-1 min-w-0">
@@ -56,6 +65,10 @@ const StudyGroupCard: React.FC<StudyGroupCardProps> = ({ group }) => {
 
       {/* Info - Mobile optimized */}
       <div className="space-y-2 mb-3 md:mb-4">
+        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+          <User className="w-4 h-4 mr-2" />
+          <span className="truncate">Host: {group.hostName}</span>
+        </div>
         <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center">
             <Users className="w-4 h-4 mr-2" />
@@ -79,24 +92,37 @@ const StudyGroupCard: React.FC<StudyGroupCardProps> = ({ group }) => {
             {Math.round((group.members / group.maxMembers) * 100)}% full
           </span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div 
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div
+            className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"
             style={{ width: `${(group.members / group.maxMembers) * 100}%` }}
           />
         </div>
       </div>
 
       {/* Action Button - Touch friendly */}
-      <button
-        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors touch-manipulation ${
-          group.isJoined
-            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            : 'bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800'
-        }`}
-      >
-        {group.isJoined ? 'View Group' : 'Join Group'}
-      </button>
+      <div className="space-y-2">
+        <button
+          onClick={() => (group.isJoined ? onView(group) : onJoinToggle(group))}
+          className={`w-full py-3 px-4 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 ${
+            group.isJoined
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800'
+          }`}
+          aria-label={group.isJoined ? 'View group' : 'Join group'}
+        >
+          {group.isJoined ? 'View Group' : 'Join Group'}
+        </button>
+        {!group.isJoined && (
+          <button
+            onClick={() => onView(group)}
+            className="w-full text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            aria-label="View group details"
+          >
+            View details
+          </button>
+        )}
+      </div>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Send, Link, MessageCircle, X, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import FileAttachment from '@/components/Messages/FileAttachment';
 
 interface Post {
   id: number;
@@ -21,17 +22,32 @@ interface Post {
   isLiked: boolean;
 }
 
+// Minimal file attachment type for sharing
+interface AttachedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
+}
+
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   post: Post | null;
-  onShare: (postId: number, message?: string, recipients?: string[]) => void;
+  onShare: (
+    postId: number,
+    message?: string,
+    recipients?: string[],
+    attachments?: AttachedFile[]
+  ) => void;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare }) => {
   const [shareMessage, setShareMessage] = useState('');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [shareType, setShareType] = useState<'public' | 'direct' | 'link' | 'message'>('public');
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const { toast } = useToast();
 
   // Mock contacts for demonstration (including messaging contacts)
@@ -63,7 +79,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare 
       return;
     }
 
-    onShare(post.id, shareMessage, selectedRecipients);
+    onShare(post.id, shareMessage, selectedRecipients, attachedFiles);
     
     // Handle message sharing specifically
     if (shareType === 'message') {
@@ -77,7 +93,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare 
           avatar: post.avatar
         },
         message: shareMessage.trim() || `Check out this post from ${post.author}`,
-        recipients: selectedRecipients
+        recipients: selectedRecipients,
+        attachments: attachedFiles
       };
       
       // Store in localStorage to simulate real-time messaging
@@ -96,6 +113,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare 
     setShareMessage('');
     setSelectedRecipients([]);
     setShareType('public');
+    setAttachedFiles([]);
     onClose();
 
     // Show success message based on share type
@@ -111,6 +129,14 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare 
       description: message,
       duration: 3000,
     });
+  };
+
+  const handleFilesSelect = (files: AttachedFile[]) => {
+    setAttachedFiles(prev => [...prev, ...files]);
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
   };
 
   const toggleRecipient = (contactId: string) => {
@@ -211,6 +237,18 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, post, onShare 
               rows={3}
             />
           </div>
+
+        {/* Attachments */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Attach files (optional)
+          </label>
+          <FileAttachment
+            onFileSelect={handleFilesSelect}
+            attachedFiles={attachedFiles}
+            onRemoveFile={handleRemoveFile}
+          />
+        </div>
 
           {/* Recipients (for direct sharing and messaging) */}
           {(shareType === 'direct' || shareType === 'message') && (

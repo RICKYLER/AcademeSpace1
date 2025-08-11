@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Search, MoreVertical, Phone, Video, Info, Smile, Paperclip, ArrowLeft, Plus, Star, Archive, Bell, BellOff, Forward, Copy, Users, MessageSquare, Share2 } from 'lucide-react';
+import { Send, Search, MoreVertical, Phone, Video, Info, Smile, Paperclip, ArrowLeft, Plus, Star, Archive, Bell, BellOff, Forward, Copy, Users, MessageSquare, Share2, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
@@ -10,10 +10,12 @@ import VideoCallInterface from './VideoCallInterface';
 import FileAttachment from './FileAttachment';
 import EmojiPicker from './EmojiPicker';
 import { useToast } from '../../hooks/use-toast';
+import useSocket from '../../hooks/useSocket';
 
 interface Message {
   id: string;
   sender: string;
+  senderId?: string;
   content: string;
   timestamp: string;
   isMe: boolean;
@@ -25,6 +27,12 @@ interface Message {
     author: string;
     content: string;
     avatar: string;
+  };
+  fileData?: {
+    name: string;
+    size: number;
+    type: string;
+    url?: string;
   };
 }
 
@@ -52,213 +60,205 @@ const MessagesContent: React.FC = () => {
   const [forwardMessage, setForwardMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentUser, setCurrentUser] = useState({ id: 'user-1', name: 'You' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
-  const conversations: Conversation[] = [
-    {
-      id: '1',
-      name: 'Sarah Chen',
-      lastMessage: 'Hey! Are you ready for the calculus exam tomorrow?',
-      timestamp: '2 min ago',
-      unread: 2,
-      avatar: 'SC',
-      isOnline: true
-    },
-    {
-      id: '2',
-      name: 'Study Group - CS101',
-      lastMessage: 'Meeting at 3 PM in the library',
-      timestamp: '1 hour ago',
-      unread: 0,
-      avatar: 'SG',
-      isOnline: false
-    },
-    {
-      id: '3',
-      name: 'Alex Rodriguez',
-      lastMessage: 'Thanks for sharing your notes!',
-      timestamp: '3 hours ago',
-      unread: 1,
-      avatar: 'AR',
-      isOnline: true
-    },
-    {
-      id: '4',
-      name: 'Emma Thompson',
-      lastMessage: 'Can we schedule a tutoring session?',
-      timestamp: 'Yesterday',
-      unread: 0,
-      avatar: 'ET',
-      isOnline: false
-    }
-  ];
+  // Socket.IO hook
+  const {
+    socket,
+    isConnected,
+    joinConversation,
+    leaveConversation,
+    sendMessage,
+    sendTypingStart,
+    sendTypingStop,
+    markAsRead,
+    shareFile,
+    setUserOnline
+  } = useSocket();
 
-  const initialMessages: Message[] = [
-    {
-      id: '1',
-      sender: 'Sarah Chen',
-      content: 'Hey! Are you ready for the calculus exam tomorrow?',
-      timestamp: '2:30 PM',
-      isMe: false,
-      status: 'read'
-    },
-    {
-      id: '2',
-      sender: 'You',
-      content: 'I think so! I\'ve been studying all week. How about you?',
-      timestamp: '2:32 PM',
-      isMe: true,
-      status: 'delivered'
-    },
-    {
-      id: '3',
-      sender: 'Sarah Chen',
-      content: 'Same here. Want to do a quick review session together?',
-      timestamp: '2:33 PM',
-      isMe: false,
-      status: 'read'
-    },
-    {
-      id: '4',
-      sender: 'You',
-      content: 'That sounds great! Meet at the library in 30 minutes?',
-      timestamp: '2:35 PM',
-      isMe: true,
-      status: 'sent'
-    }
-  ];
-
-  // Initialize messages
+  // Initialize current user and set online status
   useEffect(() => {
-    setMessages(initialMessages);
-  }, []);
+    if (isConnected) {
+      setUserOnline(currentUser.id, currentUser.name);
+    }
+  }, [isConnected, currentUser.id, currentUser.name, setUserOnline]);
 
-  // Listen for real-time post sharing events
+  // Load conversations from API
   useEffect(() => {
-    const handlePostShared = (event: CustomEvent) => {
-      const { postData, message, recipients } = event.detail;
-      
-      // Check if current conversation is in recipients
-      if (selectedConversation && recipients.includes(`msg-${selectedConversation}`)) {
-        const sharedMessage: Message = {
-          id: Date.now().toString(),
-          sender: 'You',
-          content: message,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isMe: true,
-          status: 'sent',
-          sharedPost: postData
-        };
-
-        setMessages(prev => [...prev, sharedMessage]);
-        
-        toast({
-          title: "Post shared",
-          description: "Post shared successfully to this conversation",
-        });
+    const fetchConversations = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/conversations');
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data);
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+        // Fallback to default conversations if API fails
+        setConversations([
+          {
+            id: '1',
+            name: 'Sarah Chen',
+            lastMessage: 'Hey! Are you ready for the calculus exam tomorrow?',
+            timestamp: '2 min ago',
+            unread: 2,
+            avatar: 'SC',
+            isOnline: true
+          },
+          {
+            id: '2',
+            name: 'Study Group - CS101',
+            lastMessage: 'Meeting at 3 PM in the library',
+            timestamp: '1 hour ago',
+            unread: 0,
+            avatar: 'SG',
+            isOnline: false
+          },
+          {
+            id: '3',
+            name: 'Alex Rodriguez',
+            lastMessage: 'Thanks for sharing your notes!',
+            timestamp: '3 hours ago',
+            unread: 1,
+            avatar: 'AR',
+            isOnline: true
+          },
+          {
+            id: '4',
+            name: 'Emma Thompson',
+            lastMessage: 'Can we schedule a tutoring session?',
+            timestamp: 'Yesterday',
+            unread: 0,
+            avatar: 'ET',
+            isOnline: false
+          }
+        ]);
       }
     };
 
-    window.addEventListener('postShared', handlePostShared as EventListener);
-    
+    fetchConversations();
+  }, []);
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for new messages
+    socket.on('new_message', (message: Message) => {
+      setMessages(prev => [...prev, {
+        ...message,
+        isMe: message.senderId === currentUser.id
+      }]);
+    });
+
+    // Listen for loaded messages
+    socket.on('load_messages', (loadedMessages: Message[]) => {
+      setMessages(loadedMessages.map(msg => ({
+        ...msg,
+        isMe: msg.senderId === currentUser.id
+      })));
+    });
+
+    // Listen for typing indicators
+    socket.on('user_typing', (data: { sender: string; isTyping: boolean }) => {
+      if (data.isTyping) {
+        setIsTyping(data.sender);
+      } else {
+        setIsTyping(null);
+      }
+    });
+
+    // Listen for read receipts
+    socket.on('messages_read', (data: { messageIds: string[] }) => {
+      setMessages(prev => 
+        prev.map(msg => 
+          data.messageIds.includes(msg.id) 
+            ? { ...msg, status: 'read' }
+            : msg
+        )
+      );
+    });
+
     return () => {
-      window.removeEventListener('postShared', handlePostShared as EventListener);
+      socket.off('new_message');
+      socket.off('load_messages');
+      socket.off('user_typing');
+      socket.off('messages_read');
     };
-  }, [selectedConversation, toast]);
+  }, [socket, currentUser.id]);
+
+  // Join conversation when selected
+  useEffect(() => {
+    if (selectedConversation && isConnected) {
+      // Leave previous conversation if any
+      if (selectedConversation !== '1') {
+        leaveConversation('1');
+      }
+      
+      // Join new conversation
+      joinConversation(selectedConversation);
+      
+      // Mark messages as read
+      const unreadMessages = messages.filter(msg => !msg.isMe && msg.status !== 'read');
+      if (unreadMessages.length > 0) {
+        markAsRead(selectedConversation, unreadMessages.map(msg => msg.id));
+      }
+    }
+  }, [selectedConversation, isConnected, joinConversation, leaveConversation, markAsRead, messages]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Simulate real-time message delivery and read receipts
+  // Handle typing indicator
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMessages(prevMessages => 
-        prevMessages.map(msg => {
-          if (msg.isMe && msg.status === 'sent') {
-            return { ...msg, status: 'delivered' };
-          }
-          if (msg.isMe && msg.status === 'delivered' && Math.random() > 0.7) {
-            return { ...msg, status: 'read' };
-          }
-          return msg;
-        })
-      );
-    }, 3000);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Simulate typing indicator
-  useEffect(() => {
-    let typingTimeout: NodeJS.Timeout;
-    
-    if (newMessage.length > 0) {
-      setIsTyping('You');
-      typingTimeout = setTimeout(() => {
-        setIsTyping(null);
+    if (newMessage.length > 0 && selectedConversation) {
+      sendTypingStart(selectedConversation, currentUser.name);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStop(selectedConversation, currentUser.name);
       }, 1000);
     }
 
-    return () => clearTimeout(typingTimeout);
-  }, [newMessage]);
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [newMessage, selectedConversation, currentUser.name, sendTypingStart, sendTypingStop]);
 
   const handleSendMessage = () => {
-    if (newMessage.trim() || attachedFiles.length > 0) {
-      const messageId = Date.now().toString();
-      const newMsg: Message = {
-        id: messageId,
-        sender: 'You',
-        content: newMessage.trim(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: true,
-        status: 'sent'
-      };
+    if ((newMessage.trim() || attachedFiles.length > 0) && selectedConversation) {
+      // Send text message
+      if (newMessage.trim()) {
+        sendMessage(selectedConversation, newMessage.trim(), currentUser.name, currentUser.id);
+      }
 
-      setMessages(prev => [...prev, newMsg]);
-      
+      // Send file attachments
       if (attachedFiles.length > 0) {
+        attachedFiles.forEach(file => {
+          shareFile(selectedConversation, file, currentUser.name, currentUser.id);
+        });
+        
         toast({
           title: "Files sent",
           description: `${attachedFiles.length} file(s) sent successfully`,
         });
       }
-      
-      // Simulate real-time response
-      setTimeout(() => {
-        simulateResponse();
-      }, 1000 + Math.random() * 2000);
 
       setNewMessage('');
       setAttachedFiles([]);
       setShowFileAttachment(false);
       setShowEmojiPicker(false);
-    }
-  };
-
-  const simulateResponse = () => {
-    const responses = [
-      "Got it! Thanks for letting me know.",
-      "Sounds good to me!",
-      "I'll be there on time.",
-      "Perfect! See you then.",
-      "That works for me too."
-    ];
-    
-    const selectedConv = conversations.find(c => c.id === selectedConversation);
-    if (selectedConv) {
-      const responseMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: selectedConv.name,
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: false,
-        status: 'read'
-      };
-
-      setMessages(prev => [...prev, responseMsg]);
     }
   };
 
@@ -276,18 +276,11 @@ const MessagesContent: React.FC = () => {
       return;
     }
 
-    const forwardedMsg: Message = {
-      id: Date.now().toString(),
-      sender: 'You',
-      content: forwardMessage.trim() || selectedMessage.content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-      status: 'sent',
-      isForwarded: true,
-      originalSender: selectedMessage.sender
-    };
-
-    setMessages(prev => [...prev, forwardedMsg]);
+    // Send forwarded message to each recipient
+    forwardRecipients.forEach(recipientId => {
+      const forwardedContent = forwardMessage.trim() || selectedMessage.content;
+      sendMessage(recipientId, forwardedContent, currentUser.name, currentUser.id);
+    });
 
     toast({
       title: "Message forwarded",
@@ -302,17 +295,10 @@ const MessagesContent: React.FC = () => {
   };
 
   const handleSharePost = (post: any, customMessage?: string) => {
-    const sharedMsg: Message = {
-      id: Date.now().toString(),
-      sender: 'You',
-      content: customMessage || `Check out this post from ${post.author}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-      status: 'sent',
-      sharedPost: post
-    };
-
-    setMessages(prev => [...prev, sharedMsg]);
+    if (selectedConversation) {
+      const message = customMessage || `Check out this post from ${post.author}`;
+      sendMessage(selectedConversation, message, currentUser.name, currentUser.id);
+    }
 
     toast({
       title: "Post shared",
@@ -396,9 +382,19 @@ const MessagesContent: React.FC = () => {
                   </div>
                   <span className="hidden sm:inline">Messages</span>
                 </h2>
-                <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 transition-all hover:scale-110">
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Connection status indicator */}
+                  <div className="flex items-center gap-1">
+                    {isConnected ? (
+                      <Wifi className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <WifiOff className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                  <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 transition-all hover:scale-110">
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                  </Button>
+                </div>
               </div>
               
               <div className="relative">
@@ -615,12 +611,25 @@ const MessagesContent: React.FC = () => {
                               </div>
                             )}
 
+                            {/* File attachment */}
+                            {message.fileData && (
+                              <div className="mb-3 p-3 rounded-xl bg-white/20 dark:bg-gray-900/20 relative z-10 border border-white/30">
+                                <div className="flex items-center space-x-2">
+                                  <Paperclip className="w-4 h-4" />
+                                  <div>
+                                    <p className="text-xs font-semibold">{message.fileData.name}</p>
+                                    <p className="text-xs opacity-70">{(message.fileData.size / 1024).toFixed(1)} KB</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             <p className="text-sm leading-relaxed relative z-10 font-medium">{message.content}</p>
                           </div>
                           
                           <div className={`flex items-center mt-2 space-x-2 ${message.isMe ? 'justify-end' : 'justify-start'}`}>
                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                              {message.timestamp}
+                              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {message.isMe && message.status && (
                               <div className={`text-xs font-medium flex items-center ${
@@ -657,6 +666,7 @@ const MessagesContent: React.FC = () => {
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         className="pr-10 sm:pr-12 py-2 sm:py-3 rounded-2xl sm:rounded-3xl border-gray-300/30 dark:border-gray-600/30 focus:ring-2 focus:ring-blue-500/30 focus:border-transparent bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm transition-all shadow-sm hover:shadow-md text-sm"
+                        disabled={!isConnected}
                       />
                       <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2">
                         <Button
@@ -674,11 +684,19 @@ const MessagesContent: React.FC = () => {
                       onClick={handleSendMessage} 
                       size="icon"
                       className="rounded-full bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 hover:from-blue-600 hover:via-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl hover:scale-110 transition-all duration-300 p-2 sm:p-3"
-                      disabled={!newMessage.trim() && attachedFiles.length === 0}
+                      disabled={(!newMessage.trim() && attachedFiles.length === 0) || !isConnected}
                     >
                       <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
                   </div>
+                  
+                  {/* Connection status */}
+                  {!isConnected && (
+                    <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                      <WifiOff className="w-3 h-3" />
+                      <span>Disconnected from server</span>
+                    </div>
+                  )}
                   
                   {/* Emoji Picker */}
                   <EmojiPicker
@@ -699,6 +717,12 @@ const MessagesContent: React.FC = () => {
                   <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                     Select a conversation from the sidebar to start messaging with your classmates and study groups.
                   </p>
+                  {!isConnected && (
+                    <div className="mt-4 text-xs text-red-500 flex items-center justify-center gap-1">
+                      <WifiOff className="w-3 h-3" />
+                      <span>Not connected to server</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

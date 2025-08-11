@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useBookmarks } from '../../contexts/BookmarkContext';
 import ShareModal from './ShareModal';
+import PostComposer, { AttachedFile as ComposerFile } from '@/components/Feed/PostComposer';
+import useSocket from '@/hooks/useSocket';
 
 interface Comment {
   id: number;
@@ -12,6 +14,14 @@ interface Comment {
   content: string;
   time: string;
   avatar: string;
+}
+
+interface AttachedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
 }
 
 interface Post {
@@ -25,6 +35,7 @@ interface Post {
   shares: number;
   type: string;
   isLiked: boolean;
+  attachments?: AttachedFile[];
 }
 
 const initialPosts: Post[] = [
@@ -90,6 +101,7 @@ const NewsFeed: React.FC = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const { toast } = useToast();
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
+  const { socket, isConnected } = useSocket();
 
   const handleLike = (postId: number) => {
     setPosts(prevPosts =>
@@ -128,7 +140,12 @@ const NewsFeed: React.FC = () => {
     }
   };
 
-  const handleShare = (postId: number, message?: string, recipients?: string[]) => {
+  const handleShare = (
+    postId: number,
+    message?: string,
+    recipients?: string[],
+    attachments?: AttachedFile[]
+  ) => {
     setPosts(prevPosts =>
       prevPosts.map(post =>
         post.id === postId
@@ -153,7 +170,8 @@ const NewsFeed: React.FC = () => {
           comments: [],
           shares: 0,
           type: 'shared',
-          isLiked: false
+          isLiked: false,
+          attachments: attachments && attachments.length > 0 ? attachments : undefined
         };
         
         setPosts(prevPosts => [sharedPost, ...prevPosts]);
@@ -208,8 +226,47 @@ const NewsFeed: React.FC = () => {
     setNewComments(prev => ({ ...prev, [postId]: value }));
   };
 
+  // Subscribe to realtime new posts
+  React.useEffect(() => {
+    if (!socket) return;
+    const handler = (incoming: Post) => {
+      setPosts(prev => (prev.some(p => p.id === incoming.id) ? prev : [incoming, ...prev]));
+    };
+    socket.on('new_post', handler);
+    return () => {
+      socket.off('new_post', handler);
+    };
+  }, [socket]);
+
+  const handleCreatePost = (
+    content: string,
+    files: ComposerFile[],
+    _audience: 'Public' | 'Friends' | 'Only Me'
+  ) => {
+    const newPost: Post = {
+      id: Date.now(),
+      author: 'You',
+      avatar: '😊',
+      time: 'now',
+      content,
+      likes: 0,
+      comments: [],
+      shares: 0,
+      type: 'post',
+      isLiked: false,
+      attachments: files.length > 0 ? files : undefined
+    };
+    setPosts(prev => [newPost, ...prev]);
+    if (socket && isConnected) {
+      socket.emit('create_post', newPost);
+    }
+    toast({ description: 'Post created!', duration: 2000 });
+  };
+
   return (
     <div className="space-y-6">
+      {/* New Post Composer (Facebook-style) */}
+      <PostComposer onCreatePost={handleCreatePost} currentUserName="You" />
       {posts.map((post) => (
         <div key={post.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           {/* Post Header */}
@@ -237,6 +294,38 @@ const NewsFeed: React.FC = () => {
             <p className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line">
               {post.content}
             </p>
+            {post.attachments && post.attachments.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {/* Render image previews in a grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {post.attachments
+                    .filter(file => file.type.startsWith('image/'))
+                    .map(file => (
+                      <div key={file.id} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={file.url} alt={file.name} className="w-full h-40 object-cover" />
+                      </div>
+                    ))}
+                </div>
+                {/* Non-image files list */}
+                <div className="space-y-2">
+                  {post.attachments
+                    .filter(file => !file.type.startsWith('image/'))
+                    .map(file => (
+                      <a
+                        key={file.id}
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <span className="text-sm text-gray-800 dark:text-gray-200 truncate mr-3">{file.name}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Download</span>
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Post Actions */}

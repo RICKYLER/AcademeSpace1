@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Brain, Heart, Target, BookOpen, TrendingUp, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 
-const stats = [
+// Default fallback stats shown before realtime loads
+const defaultStats = [
   {
     label: 'IQ Score',
     value: 127,
@@ -53,8 +54,8 @@ const stats = [
   }
 ];
 
-// Sample data for trend charts
-const trendData = [
+// Default fallback trend data
+const defaultTrendData = [
   { month: 'Jan', IQ: 120, EQ: 82, Mental: 88, Math: 85, Comp: 83 },
   { month: 'Feb', IQ: 122, EQ: 84, Mental: 90, Math: 88, Comp: 85 },
   { month: 'Mar', IQ: 124, EQ: 86, Mental: 91, Math: 90, Comp: 86 },
@@ -70,13 +71,88 @@ const chartConfig = {
   Comp: { label: 'Comprehension', color: '#f97316' }
 };
 
-const PerformancePanel: React.FC = () => {
+const PerformancePanel: React.FC<{ studentId?: string }> = ({ studentId = 'demo-student' }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showChart, setShowChart] = useState(false);
+  const [liveStats, setLiveStats] = useState<any>(null);
 
   const clearGraph = () => {
     setShowChart(false);
   };
+
+  // Realtime subscription
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    // Lazy import to avoid bundling issues if firebase config is absent in some envs
+    (async () => {
+      try {
+        const { initializeRealtimeAuth, listenToStudentStats } = await import('../../lib/firebase-realtime');
+        await initializeRealtimeAuth();
+        unsubscribe = listenToStudentStats(studentId, (data) => {
+          setLiveStats(data);
+        });
+      } catch (err) {
+        console.error('Realtime stats init failed:', err);
+      }
+    })();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [studentId]);
+
+  const stats = useMemo(() => {
+    const metrics = liveStats?.metrics;
+    if (!metrics) return defaultStats;
+    return [
+      {
+        label: 'IQ Score',
+        value: metrics.IQ?.value ?? defaultStats[0].value,
+        percentage: metrics.IQ?.percentage ?? defaultStats[0].percentage,
+        icon: Brain,
+        color: 'bg-blue-500',
+        trend: metrics.IQ?.trend ?? defaultStats[0].trend,
+        chartColor: '#3b82f6'
+      },
+      {
+        label: 'EQ Level',
+        value: metrics.EQ?.value ?? defaultStats[1].value,
+        percentage: metrics.EQ?.percentage ?? defaultStats[1].percentage,
+        icon: Heart,
+        color: 'bg-red-500',
+        trend: metrics.EQ?.trend ?? defaultStats[1].trend,
+        chartColor: '#ef4444'
+      },
+      {
+        label: 'Mental Health',
+        value: metrics.Mental?.value ?? defaultStats[2].value,
+        percentage: metrics.Mental?.percentage ?? defaultStats[2].percentage,
+        icon: Target,
+        color: 'bg-green-500',
+        trend: metrics.Mental?.trend ?? defaultStats[2].trend,
+        chartColor: '#22c55e'
+      },
+      {
+        label: 'Math Skills',
+        value: metrics.Math?.value ?? defaultStats[3].value,
+        percentage: metrics.Math?.percentage ?? defaultStats[3].percentage,
+        icon: BookOpen,
+        color: 'bg-purple-500',
+        trend: metrics.Math?.trend ?? defaultStats[3].trend,
+        chartColor: '#a855f7'
+      },
+      {
+        label: 'Comprehension',
+        value: metrics.Comp?.value ?? defaultStats[4].value,
+        percentage: metrics.Comp?.percentage ?? defaultStats[4].percentage,
+        icon: TrendingUp,
+        color: 'bg-orange-500',
+        trend: metrics.Comp?.trend ?? defaultStats[4].trend,
+        chartColor: '#f97316'
+      }
+    ];
+  }, [liveStats]);
+
+  const trendData = liveStats?.trends ?? defaultTrendData;
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">

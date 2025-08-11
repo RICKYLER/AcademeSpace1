@@ -73,9 +73,14 @@ const ActivityFeed: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Clock className="w-5 h-5" />
-          <span>Recent Activity</span>
+        <CardTitle className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-2"><Clock className="w-5 h-5" /> Recent Activity</span>
+          <div className="hidden md:flex items-center gap-2 text-xs">
+            <button className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">All</button>
+            <button className="px-2.5 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">Groups</button>
+            <button className="px-2.5 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">Posts</button>
+            <button className="px-2.5 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">Awards</button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
