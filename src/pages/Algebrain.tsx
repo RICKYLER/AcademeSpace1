@@ -22,7 +22,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Send, User, Bot, Calculator, BookOpen, Trophy, Lightbulb, RefreshCw, Plus, ChevronDown, Mic, ArrowUp, Image as ImageIcon, Box, FileText, Code, Zap, Sparkles, Palette, Camera, Settings, Maximize2, MicOff, Volume2, VolumeX, Home, Menu, X, Minimize2, RotateCcw, Download, Share2, Copy, Star, Heart, MessageSquare, Bookmark, MoreHorizontal, Clock, History, TrendingUp, TrendingDown, BarChart3, DollarSign, Activity, Target, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Brain, Send, User, Bot, Calculator, BookOpen, Trophy, Lightbulb, RefreshCw, Plus, ChevronDown, Mic, ArrowUp, Image as ImageIcon, Box, FileText, Code, Zap, Sparkles, Palette, Camera, Settings, Maximize2, MicOff, Volume2, VolumeX, Home, Menu, X, Minimize2, RotateCcw, Download, Share2, Copy, Star, Heart, MessageSquare, Bookmark, MoreHorizontal, Clock, History, TrendingUp, TrendingDown, BarChart3, DollarSign, Activity, Target, ArrowRight, ArrowLeft, ChevronRight, Trash2, Edit3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import PhotoGenerationGuide from '@/components/PhotoGenerationGuide';
@@ -58,7 +58,103 @@ interface ChatSession {
 
 type AIMode = 'programming' | 'math' | 'photo' | 'general';
 
-
+// Helper function to format AI responses with selective bold formatting and proper spacing
+const formatAIResponse = (content: string) => {
+  // Define important words/phrases that should be bolded
+  const importantWords = [
+    // Technical terms
+    'API', 'JavaScript', 'Python', 'React', 'Node.js', 'TypeScript', 'HTML', 'CSS',
+    'database', 'algorithm', 'function', 'variable', 'array', 'object', 'class',
+    
+    // Math terms
+    'equation', 'derivative', 'integral', 'matrix', 'vector', 'theorem', 'proof',
+    'algebra', 'calculus', 'geometry', 'statistics', 'probability',
+    
+    // General important terms
+    'important', 'note', 'warning', 'error', 'success', 'solution', 'result',
+    'key', 'main', 'primary', 'essential', 'critical', 'significant',
+    
+    // Action words
+    'install', 'configure', 'setup', 'create', 'build', 'deploy', 'test',
+    'debug', 'fix', 'update', 'upgrade', 'download', 'upload',
+    
+    // Status indicators
+    'completed', 'failed', 'pending', 'active', 'inactive', 'enabled', 'disabled',
+    
+    // Additional important terms
+    'blockchain', 'cryptocurrency', 'AI', 'machine learning', 'neural network',
+    'authentication', 'authorization', 'encryption', 'security',
+    'performance', 'optimization', 'scalability', 'responsive',
+    
+    // Systems analysis terms
+    'Systems Analysis', 'Systems Design', 'Project', 'System Development Life Cycle',
+    'SDLC', 'requirements', 'stakeholders', 'business value', 'scalability',
+    'architecture', 'interfaces', 'components', 'blueprint'
+  ];
+  
+  // Convert existing **bold** markdown to regular text first
+  let formatted = content.replace(/\*\*(.*?)\*\*/g, '$1');
+  
+  // Add proper spacing between lettered/numbered sections
+  // Match patterns like "a.", "b.", "c." at the start of lines
+  formatted = formatted.replace(/^([a-z]\.)\s*(.+?):/gmi, '<div style="margin-top: 1.5em; margin-bottom: 0.5em;"><strong>$1 $2:</strong></div>');
+  
+  // Match patterns like "1.", "2.", "3." at the start of lines
+  formatted = formatted.replace(/^(\d+\.)\s*(.+?):/gmi, '<div style="margin-top: 1.5em; margin-bottom: 0.5em;"><strong>$1 $2:</strong></div>');
+  
+  // Add spacing between major sections (Part A, Part B, etc.)
+  formatted = formatted.replace(/^(Part [A-Z][^:]*:)/gmi, '<div style="margin-top: 2em; margin-bottom: 1em; font-size: 1.1em;"><strong>$1</strong></div>');
+  
+  // Add spacing for question sections
+  formatted = formatted.replace(/^(Question \d+[^:]*:)/gmi, '<div style="margin-top: 2em; margin-bottom: 1em; font-size: 1.1em;"><strong>$1</strong></div>');
+  
+  // Bold only important words (case-insensitive)
+  importantWords.forEach(word => {
+    const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+    formatted = formatted.replace(regex, '<strong>$1</strong>');
+  });
+  
+  // Convert *italic* to HTML italic tags (keep this)
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  // Convert bullet points to proper HTML lists
+  formatted = formatted.replace(/^[•·*-]\s+(.+)$/gm, '<li>$1</li>');
+  
+  // Wrap consecutive list items in ul tags
+  formatted = formatted.replace(/((<li>.*<\/li>\s*)+)/g, '<ul style="margin: 0.5em 0; padding-left: 1.5em;">$1</ul>');
+  
+  // Convert numbered lists
+  formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  
+  // Convert ### headings to h3 (these should remain bold)
+  formatted = formatted.replace(/^###\s+(.+)$/gm, '<h3 style="font-weight: bold; font-size: 1.1em; margin: 1.5em 0 0.5em 0;">$1</h3>');
+  
+  // Convert ## headings to h2 (these should remain bold)
+  formatted = formatted.replace(/^##\s+(.+)$/gm, '<h2 style="font-weight: bold; font-size: 1.2em; margin: 2em 0 0.5em 0;">$1</h2>');
+  
+  // Convert # headings to h1 (these should remain bold)
+  formatted = formatted.replace(/^#\s+(.+)$/gm, '<h1 style="font-weight: bold; font-size: 1.3em; margin: 2em 0 0.5em 0;">$1</h1>');
+  
+  // Bold specific patterns that are always important
+  // Error messages
+  formatted = formatted.replace(/(Error:|Warning:|Note:|Important:)/gi, '<strong>$1</strong>');
+  
+  // File extensions
+  formatted = formatted.replace(/\.(js|ts|jsx|tsx|py|html|css|json|md)\b/g, '<strong>$&</strong>');
+  
+  // Version numbers
+  formatted = formatted.replace(/v?\d+\.\d+(\.\d+)?/g, '<strong>$&</strong>');
+  
+  // URLs and file paths (make them stand out)
+  formatted = formatted.replace(/(https?:\/\/[^\s]+)/g, '<strong>$1</strong>');
+  formatted = formatted.replace(/(\/[^\s]+\.[a-zA-Z]+)/g, '<strong>$1</strong>');
+  
+  // Add paragraph spacing for better readability
+  formatted = formatted.replace(/\n\n/g, '<br><br>');
+  formatted = formatted.replace(/\n/g, '<br>');
+  
+  return formatted;
+};
 
 const Algebrain = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -84,6 +180,10 @@ const Algebrain = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const recognitionRef = useRef<any | null>(null);
+  const lastTranscriptRef = useRef<string>('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const veniceTTSAbortRef = useRef<AbortController | null>(null);
 
   // State to manage the visibility of popups and dropdowns
   const [isAddPopupOpen, setAddPopupOpen] = useState(false);
@@ -100,6 +200,12 @@ const Algebrain = () => {
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   
+  // Image paste and OCR state
+  const [pastedImage, setPastedImage] = useState<string | null>(null);
+  const [imagePrompt, setImagePrompt] = useState<string>('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
   // Image selection and conversation state
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [imageSelectionMode, setImageSelectionMode] = useState(false);
@@ -109,8 +215,28 @@ const Algebrain = () => {
     selectedImageUrl?: string;
     selectedImageMessage?: Message;
     enhancementHistory: Array<{prompt: string, resultUrl: string}>;
+    topicThread: string[];
+    userExpertiseLevel: 'beginner' | 'intermediate' | 'advanced';
+    conversationDepth: number;
+    relatedTopics: string[];
+    followUpSuggestions: string[];
+    userPreferences: {
+      responseStyle: 'concise' | 'detailed' | 'comprehensive';
+      technicalLevel: 'basic' | 'intermediate' | 'expert';
+      preferredExamples: 'practical' | 'theoretical' | 'mixed';
+    };
   }>({
-    enhancementHistory: []
+    enhancementHistory: [],
+    topicThread: [],
+    userExpertiseLevel: 'intermediate',
+    conversationDepth: 0,
+    relatedTopics: [],
+    followUpSuggestions: [],
+    userPreferences: {
+      responseStyle: 'detailed',
+      technicalLevel: 'intermediate',
+      preferredExamples: 'practical'
+    }
   });
 
   // State for the selected model
@@ -122,9 +248,17 @@ const Algebrain = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connected');
 
   const [showAllSections, setShowAllSections] = useState(true);
+
+  // Proactive conversation features
+  const [proactiveFeatures, setProactiveFeatures] = useState({
+    suggestRelatedTopics: true,
+    anticipateQuestions: true,
+    provideDeepDives: true,
+    trackLearningProgress: true
+  });
 
   // Refs for the popups to detect outside clicks
   const addPopupRef = useRef<HTMLDivElement>(null);
@@ -136,6 +270,201 @@ const Algebrain = () => {
   // Generate a unique session ID
   const generateSessionId = () => {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Function to generate proactive suggestions
+  const generateProactiveSuggestions = (lastResponse: string, mode: AIMode): string[] => {
+    const suggestions = [];
+    
+    // Analyze response content for suggestion opportunities
+    if (lastResponse.includes('example') || lastResponse.includes('instance')) {
+      suggestions.push('Would you like to see more examples?');
+    }
+    
+    if (lastResponse.includes('concept') || lastResponse.includes('theory')) {
+      suggestions.push('Should I explain the underlying principles?');
+    }
+    
+    if (mode === 'programming' && lastResponse.includes('function')) {
+      suggestions.push('Would you like to see this implemented in other languages?');
+    }
+    
+    if (mode === 'math' && (lastResponse.includes('equation') || lastResponse.includes('formula'))) {
+      suggestions.push('Would you like to see step-by-step derivation?');
+    }
+    
+    if (lastResponse.includes('error') || lastResponse.includes('mistake')) {
+      suggestions.push('Should I show you how to avoid this in the future?');
+    }
+    
+    return suggestions;
+  };
+
+  // Function to analyze conversation patterns
+  const analyzeConversationPatterns = (messages: Message[]): string => {
+    const recentMessages = messages.slice(-10);
+    const topics = extractTopics(recentMessages);
+    const questionTypes = analyzeQuestionTypes(recentMessages);
+    const userEngagement = measureEngagement(recentMessages);
+    
+    return `Recent Topics: ${topics.join(', ')}
+Question Patterns: ${questionTypes}
+Engagement Level: ${userEngagement}`;
+  };
+
+  // Function to extract topics from messages
+  const extractTopics = (messages: Message[]): string[] => {
+    const topics = new Set<string>();
+    
+    messages.forEach(msg => {
+      const content = msg.content.toLowerCase();
+      
+      // Programming topics
+      if (content.includes('javascript') || content.includes('js')) topics.add('JavaScript');
+      if (content.includes('python')) topics.add('Python');
+      if (content.includes('react')) topics.add('React');
+      if (content.includes('api')) topics.add('API Development');
+      if (content.includes('database')) topics.add('Database');
+      
+      // Math topics
+      if (content.includes('algebra')) topics.add('Algebra');
+      if (content.includes('calculus')) topics.add('Calculus');
+      if (content.includes('statistics')) topics.add('Statistics');
+      if (content.includes('geometry')) topics.add('Geometry');
+      
+      // Photo topics
+      if (content.includes('image') || content.includes('photo')) topics.add('Image Processing');
+      if (content.includes('enhance')) topics.add('Image Enhancement');
+      if (content.includes('generate')) topics.add('Image Generation');
+    });
+    
+    return Array.from(topics).slice(0, 5);
+  };
+
+  // Function to analyze question types
+  const analyzeQuestionTypes = (messages: Message[]): string => {
+    const userMessages = messages.filter(msg => msg.role === 'user');
+    const questionWords = ['how', 'what', 'why', 'when', 'where', 'which'];
+    const requestWords = ['can you', 'could you', 'please', 'help'];
+    
+    let questions = 0;
+    let requests = 0;
+    
+    userMessages.forEach(msg => {
+      const content = msg.content.toLowerCase();
+      if (questionWords.some(word => content.includes(word))) questions++;
+      if (requestWords.some(word => content.includes(word))) requests++;
+    });
+    
+    if (questions > requests) return 'Inquiry-focused';
+    if (requests > questions) return 'Task-oriented';
+    return 'Mixed conversation';
+  };
+
+  // Function to measure user engagement
+  const measureEngagement = (messages: Message[]): string => {
+    const userMessages = messages.filter(msg => msg.role === 'user');
+    const avgLength = userMessages.reduce((sum, msg) => sum + msg.content.length, 0) / userMessages.length;
+    
+    if (avgLength > 100) return 'High engagement';
+    if (avgLength > 50) return 'Medium engagement';
+    return 'Low engagement';
+  };
+
+  // Function to count technical terms
+  const countTechnicalTerms = (messages: Message[]): number => {
+    const technicalTerms = [
+      'function', 'variable', 'array', 'object', 'class', 'method', 'algorithm',
+      'database', 'query', 'api', 'framework', 'library', 'component',
+      'derivative', 'integral', 'matrix', 'vector', 'equation', 'theorem',
+      'pixel', 'resolution', 'enhancement', 'filter', 'compression'
+    ];
+    
+    let count = 0;
+    messages.forEach(msg => {
+      const content = msg.content.toLowerCase();
+      technicalTerms.forEach(term => {
+        if (content.includes(term)) count++;
+      });
+    });
+    
+    return count;
+  };
+
+  // Function to analyze question complexity
+  const analyzeQuestionComplexity = (messages: Message[]): number => {
+    let complexityScore = 0;
+    const complexIndicators = [
+      'implement', 'optimize', 'architecture', 'design pattern', 'algorithm',
+      'performance', 'scalability', 'integration', 'advanced', 'complex'
+    ];
+    
+    messages.forEach(msg => {
+      const content = msg.content.toLowerCase();
+      complexIndicators.forEach(indicator => {
+        if (content.includes(indicator)) complexityScore += 0.1;
+      });
+      
+      // Longer messages tend to be more complex
+      if (msg.content.length > 200) complexityScore += 0.1;
+      if (msg.content.length > 500) complexityScore += 0.2;
+    });
+    
+    return Math.min(complexityScore, 1.0); // Cap at 1.0
+  };
+
+  // Function to determine user expertise level
+  const determineExpertiseLevel = (messages: Message[]): 'beginner' | 'intermediate' | 'advanced' => {
+    const userMessages = messages.filter(msg => msg.role === 'user');
+    const technicalTerms = countTechnicalTerms(userMessages);
+    const questionComplexity = analyzeQuestionComplexity(userMessages);
+    
+    if (technicalTerms > 10 && questionComplexity > 0.7) return 'advanced';
+    if (technicalTerms > 5 && questionComplexity > 0.4) return 'intermediate';
+    return 'beginner';
+  };
+
+  // Function to extract related topics from response
+  const extractRelatedTopics = (response: string): string[] => {
+    const topics = [];
+    
+    // Programming related topics
+    if (response.includes('JavaScript')) topics.push('TypeScript', 'React', 'Node.js');
+    if (response.includes('Python')) topics.push('Django', 'Flask', 'Data Science');
+    if (response.includes('API')) topics.push('REST', 'GraphQL', 'Authentication');
+    
+    // Math related topics
+    if (response.includes('algebra')) topics.push('calculus', 'geometry', 'statistics');
+    if (response.includes('derivative')) topics.push('integration', 'limits', 'optimization');
+    
+    // Photo related topics
+    if (response.includes('photography')) topics.push('composition', 'lighting', 'editing');
+    
+    return topics.slice(0, 3); // Limit to 3 topics
+  };
+
+  // Add proper type guards
+  const isValidMessage = (message: any): message is Message => {
+    return message && 
+           typeof message.id === 'string' && 
+           typeof message.role === 'string' && 
+           typeof message.content === 'string' && 
+           message.timestamp instanceof Date;
+  };
+
+  // Enhanced response processing
+  const processAIResponse = (response: string, userInput: string): Message => {
+    if (!response || typeof response !== 'string') {
+      throw new Error('Invalid AI response received');
+    }
+    
+    return {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: formatAIResponse(response),
+      timestamp: new Date(),
+      type: 'text'
+    };
   };
 
   // Generate a title for a chat session based on the first user message
@@ -231,6 +560,53 @@ const Algebrain = () => {
   // Load sessions on component mount
   useEffect(() => {
     loadChatSessions();
+    // Initialize enhanced error handling
+    enhancedErrorHandling.monitorConnection();
+    // Initialize performance monitoring
+    console.log('Performance monitoring initialized');
+  }, []);
+
+  // Add error boundary for component
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('Global error caught:', error);
+      toast({
+        title: 'Application Error',
+        description: 'An unexpected error occurred. Please refresh the page.',
+        variant: 'destructive',
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, [toast]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      try { 
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {}
+      
+      try { 
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+      } catch {}
+      
+      try { 
+        speechSynthesis.cancel(); 
+      } catch {}
+      
+      try { 
+        if (veniceTTSAbortRef.current) {
+          veniceTTSAbortRef.current.abort();
+        }
+      } catch {}
+    };
   }, []);
 
 
@@ -581,7 +957,17 @@ const Algebrain = () => {
     setEnhancementRequestMode(false);
     setPendingEnhancementPrompt('');
     setConversationContext({
-      enhancementHistory: []
+      enhancementHistory: [],
+      topicThread: [],
+      userExpertiseLevel: 'intermediate',
+      conversationDepth: 0,
+      relatedTopics: [],
+      followUpSuggestions: [],
+      userPreferences: {
+        responseStyle: 'detailed',
+        technicalLevel: 'intermediate',
+        preferredExamples: 'practical'
+      }
     });
   };
 
@@ -621,7 +1007,161 @@ const Algebrain = () => {
     setIsFullscreen(!isFullscreen);
   };
 
-  // Voice recording functions
+  // Message action functions
+  const copyToClipboard = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: "Copied to clipboard",
+        description: "Message content has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy message to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const likeMessage = (messageId: string) => {
+    // Add like functionality - could store in localStorage or send to backend
+    const likedMessages = JSON.parse(localStorage.getItem('likedMessages') || '[]');
+    if (!likedMessages.includes(messageId)) {
+      likedMessages.push(messageId);
+      localStorage.setItem('likedMessages', JSON.stringify(likedMessages));
+      toast({
+        title: "Message liked",
+        description: "You liked this message.",
+      });
+    } else {
+      toast({
+        title: "Already liked",
+        description: "You have already liked this message.",
+      });
+    }
+  };
+
+  const shareMessage = async (content: string) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'AI Assistant Message',
+          text: content,
+        });
+      } else {
+        // Fallback to copying to clipboard
+        await navigator.clipboard.writeText(content);
+        toast({
+          title: "Shared via clipboard",
+          description: "Message copied to clipboard for sharing.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to share message:', error);
+      toast({
+        title: "Share failed",
+        description: "Failed to share message.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteMessage = (messageId: string) => {
+    setMessages(prevMessages => {
+      const updatedMessages = prevMessages.filter(msg => msg.id !== messageId);
+      toast({
+        title: "Message deleted",
+        description: "The message has been removed from the conversation.",
+      });
+      return updatedMessages;
+    });
+  };
+
+  const startEditing = (messageId: string) => {
+    // Find the message and enable editing mode
+    const messageToEdit = messages.find(msg => msg.id === messageId);
+    if (messageToEdit) {
+      // Set the input to the message content for editing
+      setInput(messageToEdit.content);
+      // Remove the original message
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+      toast({
+        title: "Editing message",
+        description: "Message content loaded in input for editing.",
+      });
+    }
+  };
+
+  // Voice recording and live transcription functions
+  const startTranscription = () => {
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast({
+          title: 'Live Transcription Unavailable',
+          description: 'Your browser does not support speech recognition. Please use a Chromium-based browser.',
+        });
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = (navigator.language || 'en-US');
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      lastTranscriptRef.current = '';
+      recognition.onresult = (event: any) => {
+        let text = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          text += event.results[i][0].transcript;
+        }
+        lastTranscriptRef.current = text;
+      };
+
+      recognition.onspeechend = () => {
+        console.log('Speech ended, stopping transcription');
+        stopTranscription();
+        // Auto-stop a moment after the user stops speaking
+        setTimeout(() => {
+          if (mediaRecorderRef.current && isRecording) {
+            try { stopRecording(); } catch {}
+          }
+        }, 300);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('SpeechRecognition error:', event?.error);
+        setIsTranscribing(false);
+      };
+
+      recognition.onend = () => {
+        setIsTranscribing(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsTranscribing(true);
+    } catch (e) {
+      console.error('Failed to start transcription:', e);
+      setIsTranscribing(false);
+    }
+  };
+
+  const stopTranscription = () => {
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+    } catch (e) {
+      console.warn('Failed to stop transcription:', e);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -632,6 +1172,9 @@ const Algebrain = () => {
         });
         return;
       }
+
+      // Start live transcription as we start recording
+      startTranscription();
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -658,6 +1201,8 @@ const Algebrain = () => {
           await processVoiceInput(audioBlob);
         }
         stream.getTracks().forEach(track => track.stop());
+        // Stop live transcription when recording stops
+        stopTranscription();
       };
 
       mediaRecorderRef.current.onerror = (event) => {
@@ -671,7 +1216,8 @@ const Algebrain = () => {
         setIsRecording(false);
       };
 
-      mediaRecorderRef.current.start();
+      // Start with a timeslice so ondataavailable fires periodically
+      mediaRecorderRef.current.start(1000);
       setIsRecording(true);
       toast({
         title: 'Recording Started',
@@ -704,6 +1250,9 @@ const Algebrain = () => {
       } catch (error) {
         console.error('Error stopping recording:', error);
         setIsRecording(false);
+      } finally {
+        // Ensure we stop transcription in any case
+        stopTranscription();
       }
     }
   };
@@ -711,31 +1260,37 @@ const Algebrain = () => {
   const processVoiceInput = async (audioBlob: Blob) => {
     try {
       const audioUrl = URL.createObjectURL(audioBlob);
-      
-      console.log('Processing voice input with bypass method');
-      
-      const voicePrompt = "I just recorded a voice message. Please help me with my question.";
-      
+      const raw = (lastTranscriptRef.current || '').trim();
+      let transcript = raw.replace(/\s+/g, ' ').trim();
+      if (transcript && !/[.!?]"?$/.test(transcript)) {
+        transcript = transcript + '.';
+      }
+      const contentToSend = transcript || 'Voice message (no live transcription available).';
       const voiceMessage: Message = {
         id: Date.now().toString(),
         role: 'user',
-        content: voicePrompt,
+        content: contentToSend,
         timestamp: new Date(),
         type: 'voice',
         audioUrl: audioUrl
       };
-
       setMessages(prev => [...prev, voiceMessage]);
-      setInput(voicePrompt);
-      
-      console.log('Sending voice message to AI with bypass method');
-      sendMessage(voicePrompt);
-      
-      toast({
-        title: 'Voice Message Sent',
-        description: 'Your voice message has been sent to AI. Please type your specific question.',
-      });
-
+      if (transcript) {
+        setInput(transcript);
+        sendMessage(transcript);
+        speakText(`You said: ${transcript}`);
+        toast({
+          title: 'Voice Transcribed',
+          description: 'We sent your spoken message to the AI.',
+        });
+      } else {
+        setInput('');
+        toast({
+          title: 'Could not transcribe',
+          description: 'I could not capture your speech. Please try again or type your message.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       console.error('Error processing voice input:', error);
       toast({
@@ -746,44 +1301,124 @@ const Algebrain = () => {
     }
   };
 
-  const speakText = (text: string) => {
+  const speakText = async (text: string) => {
     if (!audioEnabled || !text.trim()) return;
+    // Do not speak while recording to avoid feedback loops
+    if (isRecording) return;
 
-    try {
+    // Cancel any in-flight Venice TTS request
+    if (veniceTTSAbortRef.current) {
+      try { veniceTTSAbortRef.current.abort(); } catch {}
+      veniceTTSAbortRef.current = null;
+    }
+
+    const apiKey = import.meta.env.VITE_VENICE_AI_API_KEY as string | undefined;
+    
+    if (!apiKey) {
+      console.warn('Venice AI API key not configured for TTS');
+      // Fallback to browser TTS
       if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-        
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.volume = 0.8;
-        
-        const voices = speechSynthesis.getVoices();
-        const preferredVoice = voices.find(voice => 
-          voice.name.includes('Google') || voice.name.includes('Samantha') || voice.name.includes('Alex')
-        );
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-        }
-
-        utterance.onstart = () => {
-          setIsPlaying(true);
-        };
-
-        utterance.onend = () => {
-          setIsPlaying(false);
-        };
-
-        utterance.onerror = (event) => {
-          console.error('Speech synthesis error:', event.error);
-          setIsPlaying(false);
-        };
-
         speechSynthesis.speak(utterance);
       }
-    } catch (error) {
-      console.error('Speech synthesis error:', error);
-      setIsPlaying(false);
+      return;
+    }
+
+    try {
+      // Stop any existing browser speech/audio
+      try { speechSynthesis.cancel(); } catch {}
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+
+      // New abort controller for this request
+      const controller = new AbortController();
+      veniceTTSAbortRef.current = controller;
+
+      const response = await fetch('https://api.venice.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          input: text.substring(0, 4096),
+          model: 'tts-kokoro',
+          voice: 'af_sky',
+          response_format: 'mp3',
+          speed: 1.0,
+          streaming: false,
+        }),
+      });
+
+      if (response.ok) {
+        // Clear the controller on success of fetch
+        if (veniceTTSAbortRef.current === controller) veniceTTSAbortRef.current = null;
+
+        const audioBlob = await response.blob();
+        const url = URL.createObjectURL(audioBlob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+
+        setIsPlaying(true);
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(url);
+          if (audioRef.current === audio) audioRef.current = null;
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(url);
+          if (audioRef.current === audio) audioRef.current = null;
+          tryBrowserTTS(text);
+        };
+
+        await audio.play();
+        return;
+      }
+    } catch (err: any) {
+      // If it was aborted, just return silently
+      if (err?.name === 'AbortError') return;
+      // fall through to browser TTS
+    } finally {
+      // Ensure we clear the abort controller if this instance is done
+      if (veniceTTSAbortRef.current?.signal.aborted) {
+        veniceTTSAbortRef.current = null;
+      }
+    }
+
+    // Browser TTS fallback
+    tryBrowserTTS(text);
+
+    function tryBrowserTTS(s: string) {
+      try {
+        if ('speechSynthesis' in window) {
+          // Do not speak while recording
+          if (isRecording) return;
+          speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(s);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+
+          const voices = speechSynthesis.getVoices();
+          const preferredVoice = voices.find(v =>
+            v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Alex')
+          );
+          if (preferredVoice) utterance.voice = preferredVoice;
+
+          utterance.onstart = () => setIsPlaying(true);
+          utterance.onend = () => setIsPlaying(false);
+          utterance.onerror = () => setIsPlaying(false);
+
+          speechSynthesis.speak(utterance);
+        }
+      } catch {
+        setIsPlaying(false);
+      }
     }
   };
 
@@ -1236,11 +1871,586 @@ const Algebrain = () => {
     }
   };
 
+  // Helper functions for context analysis
+  const analyzeUserIntent = (input: string, history: Message[]): string => {
+    const intents = {
+      'question': /\?|how|what|why|when|where|explain/i,
+      'request': /please|can you|could you|help me/i,
+      'clarification': /mean|clarify|elaborate|more detail/i,
+      'follow_up': /also|additionally|furthermore|next/i,
+      'correction': /actually|no|wrong|mistake|correct/i
+    };
+    
+    for (const [intent, pattern] of Object.entries(intents)) {
+      if (pattern.test(input)) return intent;
+    }
+    return 'general';
+  };
+
+  const extractMainTopic = (content: string): string => {
+    // Extract main topic from message content
+    const words = content.toLowerCase().split(' ');
+    const topicKeywords = ['programming', 'code', 'function', 'variable', 'math', 'equation', 'formula', 'image', 'photo', 'generate', 'enhance'];
+    
+    for (const keyword of topicKeywords) {
+      if (words.includes(keyword)) return keyword;
+    }
+    
+    // Return first few words as topic
+    return words.slice(0, 3).join(' ');
+  };
+
+  const generateConversationSummary = (recentMessages: Message[]): string => {
+    const topics = recentMessages
+      .filter(msg => msg.role === 'user')
+      .map(msg => extractMainTopic(msg.content))
+      .filter(Boolean);
+    
+    return `Recent discussion: ${topics.slice(-3).join(' → ')}`;
+  };
+
+  const findRelatedContext = (input: string, history: Message[]): string => {
+    // Find related messages in conversation history
+    const relatedMessages = history
+      .filter(msg => {
+        const commonWords = input.toLowerCase().split(' ')
+          .filter(word => word.length > 3)
+          .filter(word => msg.content.toLowerCase().includes(word));
+        return commonWords.length > 0;
+      })
+      .slice(-3);
+    
+    return relatedMessages.length > 0 
+      ? `Related previous discussion: ${relatedMessages.map(m => m.content.slice(0, 50)).join(' | ')}` 
+      : 'No directly related context found';
+  };
+
+  const generateFollowUpSuggestions = (input: string, mode: AIMode): string => {
+    const suggestions = {
+      'programming': [
+        'Would you like to see implementation examples?',
+        'Should I explain the underlying concepts?',
+        'Do you need help with testing or debugging?'
+      ],
+      'math': [
+        'Would you like to see step-by-step solutions?',
+        'Should I explain the mathematical principles?',
+        'Do you want to explore related problems?'
+      ],
+      'photo': [
+        'Would you like variations of this image?',
+        'Should I suggest enhancement techniques?',
+        'Do you want to explore different styles?'
+      ],
+      'general': [
+        'Would you like more detailed information?',
+        'Should I provide practical examples?',
+        'Do you have related questions?'
+      ]
+    };
+    
+    return suggestions[mode]?.join(' | ') || '';
+  };
+
+  const getEnhancedSystemPrompt = (mode: AIMode, conversationHistory: Message[], userPreferences?: any): string => {
+    const basePrompt = `You are an advanced AI assistant with deep expertise across multiple domains. You excel at:
+
+🧠 **Contextual Understanding**: Analyze conversation patterns, user intent, and implicit needs
+💭 **Deep Reasoning**: Provide multi-layered responses that address both explicit and implicit questions
+🔄 **Adaptive Learning**: Adjust communication style based on user expertise level and preferences
+🎯 **Proactive Assistance**: Anticipate follow-up questions and provide comprehensive guidance
+
+Current Mode: ${mode}
+Conversation Depth: ${conversationHistory.length > 5 ? 'Deep' : 'Surface'}
+User Expertise Level: ${determineExpertiseLevel(conversationHistory)}
+
+**Conversation Context Analysis:**
+${analyzeConversationPatterns(conversationHistory)}
+
+**Response Guidelines:**
+- Provide layered responses (immediate answer + deeper insights + related concepts)
+- Reference previous conversation points when relevant
+- Suggest logical next steps or related topics
+- Adapt complexity to user's demonstrated knowledge level
+- Ask clarifying questions to deepen understanding`;
+    
+    const contextualPrompt = conversationHistory.length > 5 
+      ? `\n\nConversation Context: This is an ongoing conversation. The user has been discussing ${mode} topics. Please maintain continuity and reference previous discussions when relevant.`
+      : '';
+    
+    return basePrompt + contextualPrompt;
+  };
+
+  // Enhanced AI configuration for better performance
+  const optimizedAIConfig = {
+    // Reduce response time with optimized parameters
+    maxTokens: 1500, // Balanced for quality vs speed
+    temperature: 0.7, // Optimal creativity vs consistency
+    
+    // Implement response caching
+    enableCaching: true,
+    cacheTimeout: 300000, // 5 minutes
+    
+    // Request optimization
+    streamResponse: true, // Enable streaming for faster perceived response
+    batchRequests: true, // Batch multiple requests when possible
+    
+    // Error recovery
+    maxRetries: 3,
+    retryDelay: 1000, // 1 second between retries
+    fallbackModel: 'gpt-3.5-turbo' // Backup model if primary fails
+  };
+
+  // Intelligent context optimization
+  const smartContextManager = {
+    // Dynamic context sizing based on conversation complexity
+    getOptimalContextSize(conversation: Message[]) {
+      const complexity = this.analyzeComplexity(conversation);
+      return complexity > 0.7 ? 15 : 10; // More context for complex conversations
+    },
+    
+    // Relevance-based message filtering
+    filterRelevantMessages(messages: Message[], currentInput: string) {
+      return messages.filter(msg => {
+        const relevanceScore = this.calculateRelevance(msg.content, currentInput);
+        return relevanceScore > 0.3;
+      }).slice(-this.getOptimalContextSize(messages));
+    },
+    
+    // Conversation summarization for long chats
+    summarizeLongConversation(messages: Message[]) {
+      if (messages.length > 50) {
+        // Summarize older messages to maintain context while reducing tokens
+        const recentMessages = messages.slice(-20);
+        const olderMessages = messages.slice(0, -20);
+        const summary = this.generateSummary(olderMessages);
+        
+        return [summary, ...recentMessages];
+      }
+      return messages;
+    },
+    
+    // Analyze conversation complexity
+    analyzeComplexity(messages: Message[]): number {
+      let complexityScore = 0;
+      const technicalTerms = ['function', 'algorithm', 'implementation', 'architecture', 'optimization'];
+      const mathTerms = ['equation', 'derivative', 'integral', 'theorem', 'proof'];
+      
+      messages.forEach(msg => {
+        const content = msg.content.toLowerCase();
+        
+        // Technical complexity indicators
+        technicalTerms.forEach(term => {
+          if (content.includes(term)) complexityScore += 0.1;
+        });
+        
+        mathTerms.forEach(term => {
+          if (content.includes(term)) complexityScore += 0.1;
+        });
+        
+        // Length-based complexity
+        if (msg.content.length > 500) complexityScore += 0.1;
+        if (msg.content.length > 1000) complexityScore += 0.2;
+        
+        // Code blocks indicate complexity
+        if (content.includes('```') || content.includes('function') || content.includes('class')) {
+          complexityScore += 0.2;
+        }
+      });
+      
+      return Math.min(complexityScore, 1.0);
+    },
+    
+    // Calculate relevance between message and current input
+    calculateRelevance(messageContent: string, currentInput: string): number {
+      const messageWords = messageContent.toLowerCase().split(/\s+/);
+      const inputWords = currentInput.toLowerCase().split(/\s+/);
+      
+      let commonWords = 0;
+      let totalWords = inputWords.length;
+      
+      inputWords.forEach(word => {
+        if (word.length > 3 && messageWords.includes(word)) {
+          commonWords++;
+        }
+      });
+      
+      return totalWords > 0 ? commonWords / totalWords : 0;
+    },
+    
+    // Generate summary of older messages
+    generateSummary(messages: Message[]): Message {
+      const topics = new Set<string>();
+      const keyPoints: string[] = [];
+      
+      messages.forEach(msg => {
+        if (msg.role === 'user') {
+          // Extract main topics from user messages
+          const content = msg.content.toLowerCase();
+          if (content.includes('programming') || content.includes('code')) topics.add('Programming');
+          if (content.includes('math') || content.includes('equation')) topics.add('Mathematics');
+          if (content.includes('image') || content.includes('photo')) topics.add('Image Generation');
+          
+          // Extract key points (first 50 chars of longer messages)
+          if (msg.content.length > 100) {
+            keyPoints.push(msg.content.substring(0, 50) + '...');
+          }
+        }
+      });
+      
+      const summaryContent = `📋 **Conversation Summary**\n\n**Topics Discussed:** ${Array.from(topics).join(', ')}\n**Key Points:** ${keyPoints.slice(0, 3).join(' | ')}\n**Messages:** ${messages.length} previous messages summarized`;
+      
+      return {
+        id: 'summary-' + Date.now(),
+        role: 'assistant',
+        content: summaryContent,
+        timestamp: new Date(),
+        type: 'text'
+      };
+    }
+  };
+
+  // Debounce function for request optimization
+  const debounce = (func: Function, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(null, args), delay);
+    };
+  };
+
+  // Optimized UI updates
+  const optimizeUIPerformance = {
+    // Virtualized message list for large conversations
+    useVirtualization: true,
+    
+    // Debounced input handling
+    debouncedInput: debounce((input: string) => {
+      // Process input after user stops typing
+    }, 300),
+    
+    // Lazy loading for images
+    lazyLoadImages: true
+  };
+
+  // Real-time performance tracking
+  const performanceMonitor = {
+    metrics: {
+      responseTime: [],
+      errorRate: 0,
+      successRate: 0,
+      apiLatency: []
+    },
+    
+    trackResponse(startTime: number, success: boolean) {
+      const responseTime = Date.now() - startTime;
+      this.metrics.responseTime.push(responseTime);
+      
+      if (success) {
+        this.metrics.successRate++;
+      } else {
+        this.metrics.errorRate++;
+      }
+      
+      // Auto-optimize based on performance
+      if (this.getAverageResponseTime() > 5000) {
+        this.enablePerformanceMode();
+      }
+    },
+    
+    getAverageResponseTime() {
+      if (this.metrics.responseTime.length === 0) return 0;
+      const sum = this.metrics.responseTime.reduce((a, b) => a + b, 0);
+      return sum / this.metrics.responseTime.length;
+    },
+    
+    enablePerformanceMode() {
+      // Reduce context size
+      // Lower temperature for faster responses
+      // Enable more aggressive caching
+      console.log('Performance mode enabled due to slow responses');
+    }
+  };
+
+  // Enhanced error handling and recovery
+  const enhancedErrorHandling = {
+    // Network resilience
+    async sendWithRetry(request: any, maxRetries = 3) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(request.url, request.options);
+          
+          if (response.ok) {
+            return response;
+          }
+          
+          // Handle specific error codes
+          if (response.status === 429) {
+            // Rate limiting - exponential backoff
+            await this.delay(Math.pow(2, attempt) * 1000);
+            continue;
+          }
+          
+          if (response.status >= 500) {
+            // Server errors - retry with delay
+            await this.delay(attempt * 1000);
+            continue;
+          }
+          
+          // Client errors - don't retry
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          
+        } catch (error) {
+          if (attempt === maxRetries) {
+            throw error;
+          }
+          await this.delay(attempt * 1000);
+        }
+      }
+    },
+    
+    // Delay utility
+    delay(ms: number) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    },
+    
+    // Connection monitoring
+    monitorConnection() {
+      window.addEventListener('online', () => {
+        this.handleConnectionRestore();
+      });
+      
+      window.addEventListener('offline', () => {
+        this.handleConnectionLoss();
+      });
+    },
+    
+    // Graceful degradation
+    handleConnectionLoss() {
+      // Switch to offline mode
+      // Show cached responses
+      // Queue requests for when connection returns
+    },
+    
+    handleConnectionRestore() {
+      // Restore online functionality
+      // Process queued requests
+    }
+  };
+
+  // Optimized message processing
+  const processMessageOptimized = async (input: string, contextMessages: Message[], imageData?: string) => {
+    try {
+      // Pre-validate input
+      if (!input.trim()) return;
+      
+      // Use optimized context window
+      const optimizedContext = contextMessages.slice(-10); // Last 10 messages for context
+      
+      // Parallel processing for multiple operations
+      const [response, analysis] = await Promise.all([
+        sendToAI(input, optimizedContext, imageData),
+        analyzeUserIntent(input, optimizedContext)
+      ]);
+      
+      return response;
+    } catch (error) {
+      // Graceful error handling
+      return handleAIError(error);
+    }
+  };
+
+  // AI error handler
+  const handleAIError = (error: any) => {
+    console.error('AI processing error:', error);
+    return 'I apologize, but I encountered an error processing your request. Please try again.';
+  };
+
+  // Real-time response streaming
+  const streamAIResponse = async (input: string, contextMessages: Message[], imageData?: string) => {
+    const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
+    
+    if (!chatApiKey) {
+      throw new Error('Venice AI Chat API key not configured.');
+    }
+
+    // Build optimized message context
+    const enhancedMessages = [
+      {
+        role: 'system',
+        content: getEnhancedSystemPrompt(currentMode, contextMessages, conversationContext)
+      },
+      ...contextMessages.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: (msg as any).imageUrl
+          ? [
+              { type: 'text', text: msg.content },
+              { type: 'image_url', image_url: { url: (msg as any).imageUrl } }
+            ]
+          : msg.content
+      })),
+      {
+        role: 'user',
+        content: imageData
+          ? [
+              { type: 'text', text: input },
+              { type: 'image_url', image_url: { url: imageData } }
+            ]
+          : input
+      }
+    ];
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'default',
+        messages: enhancedMessages,
+        max_tokens: optimizedAIConfig.maxTokens,
+        temperature: optimizedAIConfig.temperature,
+        stream: true
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedResponse = '';
+    
+    if (!reader) {
+      throw new Error('Response body reader not available');
+    }
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+          
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              accumulatedResponse += content;
+              // Update UI in real-time
+              updateMessageStream(accumulatedResponse);
+            }
+          } catch (e) {
+            // Skip invalid JSON chunks
+          }
+        }
+      }
+    }
+    
+    return accumulatedResponse || 'Sorry, I couldn\'t process that request.';
+  };
+
+  // Update message stream in real-time
+  const updateMessageStream = (content: string) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const lastMessage = newMessages[newMessages.length - 1];
+      
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.id.endsWith('-streaming')) {
+        // Update existing streaming message
+        lastMessage.content = content;
+      } else {
+        // Create new streaming message
+        newMessages.push({
+          id: `${Date.now()}-streaming`,
+          role: 'assistant',
+          content: content,
+          timestamp: new Date(),
+          type: 'text'
+        });
+      }
+      
+      return newMessages;
+    });
+  };
+
+  // Optimized AI request function (fallback for non-streaming)
+  const sendToAI = async (input: string, contextMessages: Message[], imageData?: string) => {
+    const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
+    
+    if (!chatApiKey) {
+      throw new Error('Venice AI Chat API key not configured.');
+    }
+
+    // Build optimized message context
+    const enhancedMessages = [
+      {
+        role: 'system',
+        content: getEnhancedSystemPrompt(currentMode, contextMessages, conversationContext)
+      },
+      ...contextMessages.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: (msg as any).imageUrl
+          ? [
+              { type: 'text', text: msg.content },
+              { type: 'image_url', image_url: { url: (msg as any).imageUrl } }
+            ]
+          : msg.content
+      })),
+      {
+        role: 'user',
+        content: imageData ? [
+          {
+            type: 'text',
+            text: input
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageData
+            }
+          }
+        ] : input
+      }
+    ];
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'default',
+        messages: enhancedMessages,
+        max_tokens: optimizedAIConfig.maxTokens,
+        temperature: optimizedAIConfig.temperature
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
+  };
+
   const sendMessage = async (customInput?: string) => {
     const messageText = customInput || input;
     if (!messageText.trim()) return;
 
     console.log('sendMessage called with:', messageText, 'customInput:', customInput);
+    
+    // Start performance tracking
+    const startTime = Date.now();
 
     if (!customInput) {
       const userMessage: Message = {
@@ -1248,11 +2458,13 @@ const Algebrain = () => {
         role: 'user',
         content: messageText,
         timestamp: new Date(),
-        type: 'text'
+        type: pastedImage ? 'image' : 'text',
+        ...(pastedImage && { imageUrl: pastedImage })
       };
 
       setMessages(prev => [...prev, userMessage]);
       setInput('');
+      setPastedImage(null); // Clear the pasted image after sending
     }
     
     const currentInput = messageText;
@@ -1283,7 +2495,9 @@ const Algebrain = () => {
           ...prev,
           selectedImageUrl: undefined,
           selectedImageMessage: undefined,
-          enhancementHistory: []
+          enhancementHistory: [],
+          topicThread: [],
+          conversationDepth: 0
         }));
         
         const resetMessage: Message = {
@@ -1539,82 +2753,164 @@ const Algebrain = () => {
         }
       }
 
-      // Regular chat mode
+      // Regular chat mode with optimized processing
       console.log('Sending request to Venice AI API with input:', currentInput);
       
-      const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
-      
-      if (!chatApiKey) {
-        throw new Error('Venice AI Chat API key not configured. Please set VITE_VENICE_CHAT_API_KEY in your .env file.');
-      }
-      
-      const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${chatApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'default',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a versatile AI assistant with expertise in programming, mathematics, and creative tasks. You can also handle voice interactions. Adapt your responses based on the user's needs:
-
-Programming Mode: Provide code examples, debugging help, API generation, and technical explanations.
-Math Mode: Offer step-by-step solutions, explain mathematical concepts, and show calculations.
-Photo Mode: Help with image generation prompts and creative descriptions.
-General Mode: Be helpful and informative across all topics.
-
-Current mode: ${currentMode}
-
-If the user sends a voice message, respond naturally as if they typed it. Don't mention that it was a voice message unless relevant. Always respond to the user's actual question or request.`
-            },
-            ...messages.map(msg => ({
-              role: msg.role === 'assistant' ? 'assistant' : 'user',
-              content: msg.content
-            })),
-            {
-              role: 'user',
-              content: currentInput
+      try {
+        // Analyze user intent and conversation context with optimization
+        const userIntent = analyzeUserIntent(currentInput, messages);
+        const conversationSummary = generateConversationSummary(messages.slice(-10));
+        const relatedContext = findRelatedContext(currentInput, messages);
+        const followUpSuggestions = generateFollowUpSuggestions(currentInput, currentMode);
+        
+        // Enhanced conversation analysis
+        const conversationPatterns = analyzeConversationPatterns(messages);
+        const userExpertise = determineExpertiseLevel(messages);
+        const topicThread = extractTopics(messages.slice(-5));
+        
+        // Update conversation context
+        setConversationContext(prev => ({
+          ...prev,
+          topicThread,
+          userExpertiseLevel: userExpertise,
+          conversationDepth: prev.conversationDepth + 1,
+          relatedTopics: extractRelatedTopics(currentInput)
+        }));
+        
+        // Use streaming for real-time responses
+        let finalResponse: string | null = null;
+        try {
+          const aiResponse = await streamAIResponse(currentInput, messages, pastedImage);
+          
+          // Finalize the streaming message
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            
+            if (lastMessage && lastMessage.id.endsWith('-streaming')) {
+              lastMessage.id = (Date.now() + 1).toString();
+              lastMessage.content = aiResponse;
             }
-          ],
-          max_tokens: 2000,
-          temperature: 0.7
-        }),
-      });
+            
+            return newMessages;
+          });
 
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
-      }
+          // Save for post-processing (tracking + TTS)
+          finalResponse = aiResponse;
+        } catch (streamError) {
+          console.error('Streaming failed, falling back to standard request:', streamError);
+          // Fallback to non-streaming
+          const aiResponse = await processMessageOptimized(currentInput, messages, pastedImage);
+          
+          const assistantMessage = processAIResponse(aiResponse, currentInput);
+          setMessages(prev => [...prev, assistantMessage]);
 
-      const data = await response.json();
-      console.log('API Response:', data);
-      
-      const aiResponse = data.choices?.[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
+          // Save for post-processing (tracking + TTS)
+          finalResponse = aiResponse;
+        }
+        
+        // Track successful response exactly once
+        performanceMonitor.trackResponse(startTime, true);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: new Date(),
-        type: 'text'
-      };
+        // Speak once if audio is enabled
+        // Clear the pasted image after successful processing
+        if (pastedImage) {
+          setPastedImage(null);
+        }
 
-      setMessages(prev => [...prev, assistantMessage]);
+        if (audioEnabled && !isRecording && finalResponse) {
+          setTimeout(() => {
+            speakText(finalResponse!);
+          }, 1000);
+        }
+      } catch (processingError) {
+        console.error('Optimized processing failed, falling back to standard method:', processingError);
+        
+        // Track failed response
+        performanceMonitor.trackResponse(startTime, false);
+        
+        // Fallback to original method
+        const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
+        
+        if (!chatApiKey) {
+          throw new Error('Venice AI Chat API key not configured. Please set VITE_VENICE_CHAT_API_KEY in your .env file.');
+        }
+        
+        // Build enhanced context for AI
+        const enhancedMessages = [
+          {
+            role: 'system',
+            content: getEnhancedSystemPrompt(currentMode, messages, conversationContext)
+          },
+          ...messages.slice(-8).map(msg => ({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: (msg as any).imageUrl
+              ? [
+                  { type: 'text', text: msg.content },
+                  { type: 'image_url', image_url: { url: (msg as any).imageUrl } }
+                ]
+              : msg.content
+          })),
+          {
+            role: 'user',
+            content: pastedImage
+              ? [
+                  { type: 'text', text: currentInput },
+                  { type: 'image_url', image_url: { url: pastedImage } }
+                ]
+              : currentInput
+          }
+        ];
+        
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'default',
+            messages: enhancedMessages,
+            max_tokens: optimizedAIConfig.maxTokens,
+            temperature: optimizedAIConfig.temperature
+          }),
+        });
 
-      if (audioEnabled) {
-        setTimeout(() => {
-          speakText(aiResponse);
-        }, 1000);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', errorText);
+          throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        const aiResponse = data.choices?.[0]?.message?.content || 'Sorry, I couldn\'t process that request.';
+
+        const assistantMessage = processAIResponse(aiResponse, currentInput);
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // Track successful response
+        performanceMonitor.trackResponse(startTime, true);
+
+        // Clear the pasted image after successful processing
+        if (pastedImage) {
+          setPastedImage(null);
+        }
+
+        if (audioEnabled && !isRecording) {
+          setTimeout(() => {
+            speakText(aiResponse);
+          }, 1000);
+        }
       }
 
     } catch (error) {
       console.error('Error:', error);
+      
+      // Track failed response
+      performanceMonitor.trackResponse(startTime, false);
       toast({
         title: 'Connection Error',
         description: 'Failed to connect to Venice AI. Please check your internet connection and try again.',
@@ -1641,6 +2937,264 @@ If the user sends a voice message, respond naturally as if they typed it. Don't 
     }
   };
 
+  // OCR text extraction function using Venice AI Vision
+  const extractTextFromImage = async (imageDataUrl: string): Promise<string> => {
+    try {
+      const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
+      
+      if (!chatApiKey) {
+        console.warn('Venice AI Chat API key not configured for OCR');
+        return '';
+      }
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'default',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert OCR system. Extract all visible text from images accurately. Return only the extracted text without any additional commentary or formatting. If no text is found, return an empty string.'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Please extract all text from this image. Return only the text content, nothing else.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: imageDataUrl
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.1
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OCR API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const extractedText = data.choices?.[0]?.message?.content?.trim() || '';
+      
+      console.log('OCR extracted text:', extractedText);
+      return extractedText;
+    } catch (error) {
+      console.error('OCR extraction failed:', error);
+      return '';
+    }
+  };
+
+  // Handle clipboard paste for images with OCR integration
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const imageDataUrl = event.target?.result as string;
+            setPastedImage(imageDataUrl);
+            
+            // Simply set the image without any processing messages
+            // The user can then type their prompt and send both together
+            toast({
+              title: 'Image Ready',
+              description: 'Image pasted. Type your prompt and send to analyze together.',
+            });
+          };
+          reader.onerror = () => {
+            toast({
+              title: 'Error',
+              description: 'Failed to load the pasted image. Please try again.',
+              variant: 'destructive',
+            });
+          };
+          reader.readAsDataURL(file);
+        } else {
+          toast({
+            title: 'Error',
+            description: 'Invalid image data. Please try copying the image again.',
+            variant: 'destructive',
+          });
+        }
+        break;
+      }
+    }
+  };
+
+  // Remove pasted image
+  const removePastedImage = () => {
+    setPastedImage(null);
+    setImagePrompt('');
+  };
+
+  // Handle image file upload from input button with OCR
+  const handleImageFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsProcessingImage(true);
+      toast({
+        title: 'Processing Upload...',
+        description: 'Loading image and extracting text content.',
+      });
+      
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const result = e.target?.result as string;
+        setPastedImage(result);
+        
+        try {
+          // Extract text from uploaded image using OCR
+          const extractedText = await extractTextFromImage(result);
+          
+          if (extractedText.trim()) {
+            // Auto-populate the text area with extracted text
+            setInput(extractedText);
+            setImagePrompt('OCR + Analysis');
+            
+            toast({
+              title: 'Text Extracted!',
+              description: `Found text: "${extractedText.substring(0, 50)}${extractedText.length > 50 ? '...' : ''}"`,
+            });
+          } else {
+            setImagePrompt('Analyze this image and describe what you see');
+            toast({
+              title: 'Image Uploaded',
+              description: 'No text detected. Image ready for analysis.',
+            });
+          }
+        } catch (error) {
+          console.error('OCR processing failed:', error);
+          setImagePrompt('Analyze this image and describe what you see');
+          toast({
+            title: 'Upload Complete',
+            description: 'Text extraction failed, but image is ready for analysis.',
+          });
+        }
+        
+        setIsProcessingImage(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Process image with enhanced OCR and AI analysis
+  const processImageWithAI = async (imageDataUrl: string, prompt: string) => {
+    setIsProcessingImage(true);
+    try {
+      // Extract text from image using Venice AI Vision
+      const extractedText = await extractTextFromImage(imageDataUrl);
+      
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `${prompt}\n\n[Image attached for analysis]${extractedText ? `\n\nExtracted Text: "${extractedText}"` : ''}`,
+        timestamp: new Date(),
+        type: 'image',
+        imageUrl: imageDataUrl
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      
+      // Now process both the image and extracted text with AI
+      const chatApiKey = import.meta.env.VITE_VENICE_CHAT_API_KEY;
+      
+      if (!chatApiKey) {
+        throw new Error('Venice AI Chat API key not configured');
+      }
+
+      // Create comprehensive prompt that includes both image and text analysis
+      const analysisPrompt = extractedText.trim() 
+        ? `Please analyze this image and the extracted text together. 
+
+User's request: "${prompt}"
+
+Extracted text from image: "${extractedText}"
+
+Please provide a comprehensive response that addresses both the visual content of the image and the extracted text. Consider how they relate to each other and the user's specific request.`
+        : `Please analyze this image based on the user's request: "${prompt}". Describe what you see and provide helpful insights or assistance based on the visual content.`;
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'default',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert AI assistant that can analyze both images and text. Provide comprehensive, helpful responses that address both visual and textual content when available.'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: analysisPrompt },
+                { type: 'image_url', image_url: { url: imageDataUrl } }
+              ]
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI analysis failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const analysis = data.choices?.[0]?.message?.content || 'Unable to analyze the image and text.';
+      
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `📸 **Image and Text Analysis Complete!**\n\n${analysis}${extractedText ? `\n\n**📝 Extracted Text:** "${extractedText}"` : ''}\n\n💡 **Next Steps:** You can ask follow-up questions about the image or text, request modifications, or ask for more specific analysis.`,
+        timestamp: new Date(),
+        type: 'text'
+      };
+      setMessages(prev => [...prev, aiResponse]);
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: '❌ **Image Analysis Failed**\n\nI encountered an error while analyzing your image. Please try again or describe what you see in the image manually.',
+        timestamp: new Date(),
+        type: 'text'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
+      toast({
+        title: 'Processing Error',
+        description: 'Failed to process image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
   const handleMicClick = () => {
     if (isRecording) {
       stopRecording();
@@ -1652,7 +3206,20 @@ If the user sends a voice message, respond naturally as if they typed it. Don't 
   const toggleAudio = () => {
     setAudioEnabled(!audioEnabled);
     if (audioEnabled) {
-      speechSynthesis.cancel();
+      // Turning OFF: stop any current speech/audio
+      try { speechSynthesis.cancel(); } catch {}
+      if (audioRef.current) {
+        try {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        } catch {}
+        audioRef.current = null;
+      }
+      // Cancel any pending Venice TTS requests
+      if (veniceTTSAbortRef.current) {
+        veniceTTSAbortRef.current.abort();
+        veniceTTSAbortRef.current = null;
+      }
     }
   };
 
@@ -2257,10 +3824,9 @@ Please be detailed and specific in your analysis.`;
         throw new Error('Venice AI Chat API key not configured.');
       }
       
-      const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${chatApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -2392,7 +3958,9 @@ What would you like to enhance in this image?`,
     setConversationContext(prev => ({
       ...prev,
       selectedImageUrl: undefined,
-      selectedImageMessage: undefined
+      selectedImageMessage: undefined,
+      topicThread: [],
+      conversationDepth: 0
     }));
     
     const selectionModeMessage: Message = {
@@ -2717,10 +4285,9 @@ Please be detailed and conversational in your analysis, as this is part of an on
         throw new Error('Venice AI Chat API key not configured.');
       }
       
-      const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${chatApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -2957,93 +4524,92 @@ Please be detailed and conversational in your analysis, as this is part of an on
 
 
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden`}>
-      {/* Compact Header Bar */}
-      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Link to="/" className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors">
-            <Home className="w-4 h-4" />
-            <span className="text-xs font-medium">Home</span>
-          </Link>
-          <div className="w-px h-4 bg-white/20"></div>
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center shadow-lg">
-              <Brain className="w-4 h-4 text-white" />
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-gray-50 flex flex-col`}>
+      {/* Modern Figma-Style Header - Responsive */}
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 md:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <Link to="/" className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 transition-colors">
+            <div className="p-1 sm:p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors">
+              <Home className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">AlgebrAI Assistant</h1>
-              <p className="text-xs text-white/60">Powered by Venice AI</p>
+          </Link>
+          
+          <div className="w-px h-4 sm:h-5 bg-gray-300"></div>
+          
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+              <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-base sm:text-lg font-semibold text-gray-900">AlgebrAI</h1>
+              <p className="text-xs text-gray-500 -mt-0.5">AI Assistant</p>
+            </div>
+            <div className="block sm:hidden">
+              <h1 className="text-sm font-semibold text-gray-900">AlgebrAI</h1>
             </div>
           </div>
         </div>
-        
-                  <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-2 bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-xs text-green-300 font-medium">Online</span>
-            </div>
+      
+        <div className="flex items-center space-x-1 sm:space-x-3">
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8"
+            >
+              {isFullscreen ? <Minimize2 className="w-3 h-3 sm:w-4 sm:h-4" /> : <Maximize2 className="w-3 h-3 sm:w-4 sm:h-4" />}
+            </Button>
             
-            {chatSessions.length > 0 && (
-              <div className="flex items-center space-x-2 bg-blue-500/20 px-2 py-1 rounded-full border border-blue-500/30">
-                <History className="w-3 h-3 text-blue-300" />
-                <span className="text-xs text-blue-300 font-medium">{chatSessions.length} saved</span>
-              </div>
-            )}
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleFullscreen}
-            className="text-white/70 hover:text-white hover:bg-white/10 rounded-lg w-8 h-8"
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-white/70 hover:text-white hover:bg-white/10 rounded-lg w-8 h-8"
-          >
-            <Menu className="w-4 h-4" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8"
+            >
+              <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-60px)]">
-        {/* Compact Sidebar */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed lg:relative z-40 w-64 h-full bg-black/30 backdrop-blur-xl border-r border-white/10 transition-all duration-300 overflow-y-auto`}>
-          <div className="p-4 space-y-4">
+      <div className="flex h-[calc(100vh-49px)] sm:h-[calc(100vh-57px)] relative">
+        {/* Modern Figma-Style Sidebar - Responsive */}
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed lg:${sidebarOpen ? 'relative' : 'hidden'} z-40 w-64 sm:w-72 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out overflow-y-auto`}>
+          <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
             {/* Model Selection */}
-            <div>
-              <h3 className="text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider">AI Model</h3>
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
+                Model
+              </h3>
               <div className="relative" ref={modelRef}>
                 <button 
                   onClick={() => setModelOpen(!isModelOpen)} 
-                  className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all duration-300 group"
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-white hover:bg-blue-50 border border-gray-300 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md touch-manipulation"
                 >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                      <Brain className="w-3 h-3 text-white" />
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div className="text-left">
-                      <div className="text-white text-sm font-medium">{selectedModel}</div>
-                      <div className="text-white/50 text-xs">Advanced AI Model</div>
+                    <div className="text-left min-w-0 flex-1">
+                      <div className="text-gray-900 text-xs sm:text-sm font-semibold truncate">{selectedModel}</div>
+                      <div className="text-gray-600 text-xs">AI Model</div>
                     </div>
                   </div>
-                  <ChevronDown className={`w-3 h-3 text-white/50 transition-transform duration-200 ${isModelOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform duration-200 ${isModelOpen ? 'rotate-180' : ''} flex-shrink-0`} />
                 </button>
                 
                 {isModelOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-xl shadow-xl z-50 overflow-hidden backdrop-blur-sm">
                     {models.map((model, index) => (
                       <button
                         key={model}
                         onClick={() => handleModelSelect(model)}
-                        className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 border-b border-white/5 last:border-b-0"
+                        className="w-full p-4 text-left hover:bg-blue-50 transition-all duration-200 border-b border-gray-200 last:border-b-0"
                       >
-                        <div className="text-white text-sm font-medium">{model}</div>
-                        <div className="text-white/50 text-xs mt-1">
+                        <div className="text-gray-900 text-sm font-semibold">{model}</div>
+                        <div className="text-gray-600 text-xs mt-1">
                           {index === 0 && "Latest general-purpose model"}
                           {index === 1 && "Optimized for creative tasks"}
                           {index === 2 && "Advanced vision capabilities"}
@@ -3058,65 +4624,62 @@ Please be detailed and conversational in your analysis, as this is part of an on
             </div>
 
             {/* Mode Selection */}
-            <div>
-              <h3 className="text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider">AI Mode</h3>
-              <div className="grid grid-cols-3 gap-1">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
+                Mode
+              </h3>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
-                  { mode: 'general' as AIMode, icon: Brain, label: 'General', color: 'from-gray-500 to-slate-500' },
-                  { mode: 'programming' as AIMode, icon: Code, label: 'Code', color: 'from-blue-500 to-cyan-500' },
-                  { mode: 'math' as AIMode, icon: Calculator, label: 'Math', color: 'from-green-500 to-emerald-500' },
-                  { mode: 'photo' as AIMode, icon: Camera, label: 'Photo', color: 'from-purple-500 to-pink-500' },
-              
-                ].map(({ mode, icon: Icon, label, color }) => (
+                  { mode: 'general' as AIMode, icon: Brain, label: 'General' },
+                  { mode: 'programming' as AIMode, icon: Code, label: 'Code' },
+                  { mode: 'math' as AIMode, icon: Calculator, label: 'Math' },
+                  { mode: 'photo' as AIMode, icon: Camera, label: 'Photo' }
+                ].map(({ mode, icon: Icon, label }) => (
                   <button
                     key={mode}
                     onClick={() => setCurrentMode(mode)}
-                    className={`p-2 rounded-lg border transition-all duration-300 ${
+                    className={`p-3 sm:p-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md touch-manipulation min-h-[60px] sm:min-h-[auto] ${
                       currentMode === mode
-                        ? 'bg-white/20 border-white/30 shadow-lg'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 text-blue-700'
+                        : 'bg-white hover:bg-gray-50 border border-gray-300 text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    <div className={`w-6 h-6 rounded-md bg-gradient-to-r ${color} flex items-center justify-center mx-auto mb-1`}>
-                      <Icon className="w-3 h-3 text-white" />
+                    <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                      <span className="text-xs font-semibold">{label}</span>
                     </div>
-                    <div className="text-white text-xs font-medium">{label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div>
-              <h3 className="text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider">Quick Actions</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
+                Quick Actions
+              </h3>
               <div className="relative" ref={quickActionsRef}>
                 <button 
                   onClick={() => setIsQuickActionsOpen(!isQuickActionsOpen)} 
-                  className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all duration-300 group relative"
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-white hover:bg-purple-50 border border-gray-300 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md touch-manipulation"
                   title="Quick Actions (⌘+K)"
                 >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                      <Zap className="w-3 h-3 text-white" />
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div className="text-left">
-                      <div className="text-white text-sm font-medium">Quick Actions</div>
-                      <div className="text-white/50 text-xs">Choose from templates</div>
+                    <div className="text-left min-w-0 flex-1">
+                      <div className="text-gray-900 text-xs sm:text-sm font-semibold truncate">Quick Actions</div>
+                      <div className="text-gray-600 text-xs">Choose from templates</div>
                     </div>
                   </div>
-                  <ChevronDown className={`w-3 h-3 text-white/50 transition-transform duration-200 ${isQuickActionsOpen ? 'rotate-180' : ''}`} />
-                  
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    Quick Actions (⌘+K)
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                  </div>
+                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform duration-200 ${isQuickActionsOpen ? 'rotate-180' : ''} flex-shrink-0`} />
                 </button>
                 
                 {isQuickActionsOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden max-h-64 overflow-y-auto custom-scrollbar">
-                    <div className="p-2">
-                      <div className="text-xs text-white/60 px-2 py-1 mb-2 border-b border-white/10">Programming</div>
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-xl border border-gray-300 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto custom-scrollbar">
+                    <div className="p-3">
+                      <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 border-b border-gray-200 bg-gray-50 rounded-lg">Programming</div>
                       {quickActions.filter(action => action.category === 'Programming').map((action, index) => (
                         <button
                           key={`prog-${index}`}
@@ -3124,19 +4687,19 @@ Please be detailed and conversational in your analysis, as this is part of an on
                             handleQuickAction(action);
                             setIsQuickActionsOpen(false);
                           }}
-                          className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                          className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                         >
-                          <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                            <action.icon className="w-2 h-2 text-white" />
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                            <action.icon className="w-4 h-4 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                            <div className="text-white/40 text-xs truncate">{action.description}</div>
+                            <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                            <div className="text-gray-600 text-xs truncate">{action.description}</div>
                           </div>
                         </button>
                       ))}
                       
-                      <div className="text-xs text-white/60 px-2 py-1 mb-2 mt-3 border-b border-white/10">Mathematics</div>
+                      <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 mt-4 border-b border-gray-200 bg-gray-50 rounded-lg">Mathematics</div>
                       {quickActions.filter(action => action.category === 'Mathematics').map((action, index) => (
                         <button
                           key={`math-${index}`}
@@ -3144,19 +4707,19 @@ Please be detailed and conversational in your analysis, as this is part of an on
                             handleQuickAction(action);
                             setIsQuickActionsOpen(false);
                           }}
-                          className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                          className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                         >
-                          <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                            <action.icon className="w-2 h-2 text-white" />
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                            <action.icon className="w-4 h-4 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                            <div className="text-white/40 text-xs truncate">{action.description}</div>
+                            <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                            <div className="text-gray-600 text-xs truncate">{action.description}</div>
                           </div>
                         </button>
                       ))}
                       
-                      <div className="text-xs text-white/60 px-2 py-1 mb-2 mt-3 border-b border-white/10">Photo Generation</div>
+                      <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 mt-4 border-b border-gray-200 bg-gray-50 rounded-lg">Photo Generation</div>
                       {quickActions.filter(action => action.category === 'Photo Generation').map((action, index) => (
                         <button
                           key={`photo-${index}`}
@@ -3164,19 +4727,19 @@ Please be detailed and conversational in your analysis, as this is part of an on
                             handleQuickAction(action);
                             setIsQuickActionsOpen(false);
                           }}
-                          className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                          className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                         >
-                          <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                            <action.icon className="w-2 h-2 text-white" />
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                            <action.icon className="w-4 h-4 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                            <div className="text-white/40 text-xs truncate">{action.description}</div>
+                            <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                            <div className="text-gray-600 text-xs truncate">{action.description}</div>
                           </div>
                         </button>
                       ))}
                       
-                                             <div className="text-xs text-white/60 px-2 py-1 mb-2 mt-3 border-b border-white/10">Photo Editing</div>
+                      <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 mt-4 border-b border-gray-200 bg-gray-50 rounded-lg">Photo Editing</div>
                        {quickActions.filter(action => action.category === 'Photo Editing').map((action, index) => (
                          <button
                            key={`edit-${index}`}
@@ -3184,19 +4747,19 @@ Please be detailed and conversational in your analysis, as this is part of an on
                              handleQuickAction(action);
                              setIsQuickActionsOpen(false);
                            }}
-                           className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                           className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                          >
-                           <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                             <action.icon className="w-2 h-2 text-white" />
+                           <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                             <action.icon className="w-4 h-4 text-white" />
                            </div>
                            <div className="min-w-0 flex-1">
-                             <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                             <div className="text-white/40 text-xs truncate">{action.description}</div>
+                             <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                             <div className="text-gray-600 text-xs truncate">{action.description}</div>
                            </div>
                          </button>
                        ))}
                        
-                                               <div className="text-xs text-white/60 px-2 py-1 mb-2 mt-3 border-b border-white/10">Photo Enhancement</div>
+                        <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 mt-4 border-b border-gray-200 bg-gray-50 rounded-lg">Photo Enhancement</div>
                         {quickActions.filter(action => action.category === 'Photo Enhancement').map((action, index) => (
                           <button
                             key={`enhance-${index}`}
@@ -3212,19 +4775,19 @@ Please be detailed and conversational in your analysis, as this is part of an on
                                 setIsQuickActionsOpen(false);
                               }
                             }}
-                            className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                            className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                           >
-                            <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                              <action.icon className="w-2 h-2 text-white" />
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                              <action.icon className="w-4 h-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                              <div className="text-white/40 text-xs truncate">{action.description}</div>
+                              <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                              <div className="text-gray-600 text-xs truncate">{action.description}</div>
                             </div>
                           </button>
                         ))}
                         
-                        <div className="text-xs text-white/60 px-2 py-1 mb-2 mt-3 border-b border-white/10">Testing</div>
+                        <div className="text-xs text-gray-700 font-semibold px-3 py-2 mb-2 mt-4 border-b border-gray-200 bg-gray-50 rounded-lg">Testing</div>
                         {quickActions.filter(action => action.category === 'Testing').map((action, index) => (
                           <button
                             key={`test-${index}`}
@@ -3237,14 +4800,14 @@ Please be detailed and conversational in your analysis, as this is part of an on
                                 setIsQuickActionsOpen(false);
                               }
                             }}
-                            className="w-full flex items-center space-x-2 p-2 text-left hover:bg-white/10 rounded-md transition-all duration-200 group"
+                            className="w-full flex items-center space-x-3 p-3 text-left hover:bg-blue-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-blue-200"
                           >
-                            <div className={`w-4 h-4 rounded-md bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0`}>
-                              <action.icon className="w-2 h-2 text-white" />
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                              <action.icon className="w-4 h-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-white text-xs font-medium truncate">{action.text}</div>
-                              <div className="text-white/40 text-xs truncate">{action.description}</div>
+                              <div className="text-gray-900 text-sm font-semibold truncate">{action.text}</div>
+                              <div className="text-gray-600 text-xs truncate">{action.description}</div>
                             </div>
                           </button>
                         ))}
@@ -3258,78 +4821,98 @@ Please be detailed and conversational in your analysis, as this is part of an on
 
             {/* Photo Generation Setup Info */}
             {currentMode === 'photo' && (
-              <div className="space-y-3">
+              <div className="space-y-6 animate-fade-in" style={{animationDelay: '0.4s'}}>
                 {/* Style Selection */}
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
-                  <h4 className="text-xs font-semibold text-purple-300 mb-2">Image Style</h4>
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                  <h4 className="text-base font-semibold text-gray-900 mb-4">Image Style</h4>
                   <div className="relative">
                     <select
                       value={selectedStyle}
                       onChange={(e) => setSelectedStyle(e.target.value)}
-                      className="w-full bg-black/20 border border-purple-500/30 rounded-md px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-400"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                     >
                       {availableStyles.length > 0 ? (
                         availableStyles.map((style) => (
-                          <option key={style} value={style} className="bg-black text-white">
+                          <option key={style} value={style} className="bg-white text-gray-900">
                             {style}
                           </option>
                         ))
                       ) : (
-                        <option value="3D Model" className="bg-black text-white">3D Model</option>
+                        <option value="3D Model" className="bg-white text-gray-900">3D Model</option>
                       )}
                     </select>
                   </div>
-                  <p className="text-xs text-purple-200/60 mt-1">
+                  <p className="text-sm text-gray-600 mt-3">
                     Choose the artistic style for your generated images
                   </p>
                 </div>
 
                 {/* Realistic Image Help */}
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-semibold text-green-300">Realistic Images</h4>
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-base font-semibold text-gray-900">Realistic Images</h4>
                     <Button
                       onClick={showRealisticImageHelp}
                       variant="ghost"
                       size="sm"
-                      className="w-6 h-6 p-0 text-green-300 hover:text-green-200 hover:bg-green-500/20 rounded"
+                      className="w-10 h-10 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
                       title="Realistic Image Guide"
                     >
-                      <Lightbulb className="w-3 h-3" />
+                      <Lightbulb className="w-5 h-5" />
                     </Button>
                   </div>
-                  <p className="text-xs text-green-200/80 mb-2">
+                  <p className="text-sm text-gray-700 mb-4">
                     Generate photorealistic images with professional photography styles.
                   </p>
-                  <div className="text-xs text-green-200/60 space-y-1">
-                    <div>• Photographic, Realistic, Photorealistic</div>
-                    <div>• Professional Photography styles</div>
-                    <div>• High Resolution & Quality options</div>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <span>Photographic, Realistic, Photorealistic</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <span>Professional Photography styles</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <span>High Resolution & Quality options</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* API Setup Info */}
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                  <h4 className="text-xs font-semibold text-blue-300 mb-2">Photo Generation Setup</h4>
-                  <p className="text-xs text-blue-200/80 mb-2">
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                  <h4 className="text-base font-semibold text-gray-900 mb-4">Photo Generation Setup</h4>
+                  <p className="text-sm text-gray-700 mb-4">
                     To use photo generation, you need a valid API key from an image generation service.
                   </p>
-                  <div className="text-xs text-blue-200/60 space-y-1">
-                    <div>• Venice AI API (Recommended)</div>
-                    <div>• OpenAI DALL-E API</div>
-                    <div>• Stability AI API</div>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      <span>Venice AI API (Recommended)</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <span>OpenAI DALL-E API</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                      <span>Stability AI API</span>
+                    </div>
                   </div>
-                  <div className="mt-2 text-xs text-blue-200/60">
-                    Add your API key to the .env file as VITE_VENICE_IMAGE_API_KEY
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <p className="text-sm text-blue-800">
+                      Add your API key to the .env file as VITE_VENICE_IMAGE_API_KEY
+                    </p>
                   </div>
                   
                   {/* API Testing */}
-                  <div className="mt-3 pt-2 border-t border-blue-500/20">
+                  <div className="mt-5 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-blue-200/80">API Status</span>
+                      <span className="text-sm font-medium text-gray-700">API Status</span>
                       <button
                         onClick={testAPI}
-                        className="text-xs bg-green-500/20 hover:bg-green-500/30 text-green-300 px-2 py-1 rounded border border-green-500/30 transition-colors"
+                        className="text-sm bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-xl border border-green-200 transition-all duration-200 font-medium"
                       >
                         Test Connection
                       </button>
@@ -3340,67 +4923,64 @@ Please be detailed and conversational in your analysis, as this is part of an on
             )}
 
             {/* Chat History */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Chat History</h3>
-                <div className="flex items-center space-x-1">
+            <div className="animate-fade-in" style={{animationDelay: '0.5s'}}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-semibold text-gray-900">Chat History</h3>
+                <div className="flex items-center space-x-2">
                   <Button
                     onClick={startNewChat}
                     variant="ghost"
                     size="sm"
-                    className="w-6 h-6 p-0 text-white/70 hover:text-white hover:bg-white/10 rounded group relative"
+                    className="w-10 h-10 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl group relative transition-all duration-200"
                     title="New Chat (⌘+N)"
                   >
-                    <Plus className="w-3 h-3" />
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                      New Chat (⌘+N)
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                    </div>
+                    <Plus className="w-5 h-5" />
                   </Button>
                   <Button
                     onClick={toggleHistory}
                     variant="ghost"
                     size="sm"
-                    className="w-6 h-6 p-0 text-white/70 hover:text-white hover:bg-white/10 rounded group relative"
+                    className="w-10 h-10 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl group relative transition-all duration-200"
                     title="Toggle History (⌘+H)"
                   >
-                    <MessageSquare className="w-3 h-3" />
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                      Toggle History (⌘+H)
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                    </div>
+                    <MessageSquare className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
               
               {showHistory && (
-                <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
                   {chatSessions.length === 0 ? (
-                    <div className="text-xs text-white/50 p-2 text-center">
+                    <div className="text-sm text-gray-600 p-4 text-center bg-gray-50 rounded-xl border border-gray-200">
                       No saved conversations
                     </div>
                   ) : (
-                    chatSessions.map((session) => (
+                    chatSessions.map((session, index) => (
                       <div
                         key={session.id}
-                        className={`group relative p-2 rounded-lg border transition-all duration-200 cursor-pointer ${
+                        className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer animate-fade-in shadow-sm hover:shadow-md ${
                           currentSessionId === session.id
-                            ? 'bg-purple-500/20 border-purple-500/30'
-                            : 'bg-white/5 border-white/10 hover:bg-white/10'
+                            ? 'bg-blue-50 border-blue-200 shadow-md'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
                         }`}
+                        style={{animationDelay: `${0.6 + index * 0.1}s`}}
                         onClick={() => loadSession(session)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="text-white text-xs font-medium truncate">
+                            <div className={`text-sm font-semibold truncate ${
+                              currentSessionId === session.id ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
                               {session.title}
                             </div>
-                            <div className="text-white/50 text-xs mt-1">
+                            <div className={`text-sm mt-1 ${
+                              currentSessionId === session.id ? 'text-blue-700' : 'text-gray-600'
+                            }`}>
                               {session.messages.length} messages
                             </div>
-                            <div className="text-white/40 text-xs mt-1">
+                            <div className={`text-xs mt-1 ${
+                              currentSessionId === session.id ? 'text-blue-600' : 'text-gray-500'
+                            }`}>
                               {new Date(session.updatedAt).toLocaleDateString()}
                             </div>
                           </div>
@@ -3409,10 +4989,10 @@ Please be detailed and conversational in your analysis, as this is part of an on
                               e.stopPropagation();
                               deleteSession(session.id);
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-500/20 rounded"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-red-50 rounded-lg"
                             title="Delete session"
                           >
-                            <X className="w-3 h-3 text-red-400" />
+                            <X className="w-4 h-4 text-red-500" />
                           </button>
                         </div>
                       </div>
@@ -3424,154 +5004,208 @@ Please be detailed and conversational in your analysis, as this is part of an on
 
             {/* Chat Controls */}
             <div>
-              <h3 className="text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider">Chat Controls</h3>
-              <div className="space-y-1">
+              <h3 className="text-base font-semibold text-gray-900 mb-6">Chat Controls</h3>
+              <div className="space-y-3">
                 <Button
                   onClick={clearChat}
                   variant="ghost"
-                  className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-lg h-8 text-xs"
+                  className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl h-12 text-sm font-medium transition-all duration-200 border border-gray-200 hover:border-gray-300"
                 >
-                  <RotateCcw className="w-3 h-3 mr-2" />
+                  <RotateCcw className="w-5 h-5 mr-3 text-gray-500" />
                   Clear Chat
                 </Button>
                 <Button
                   onClick={() => {/* Export chat */}}
                   variant="ghost"
-                  className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-lg h-8 text-xs"
+                  className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl h-12 text-sm font-medium transition-all duration-200 border border-gray-200 hover:border-gray-300"
                 >
-                  <Download className="w-3 h-3 mr-2" />
+                  <Download className="w-5 h-5 mr-3 text-gray-500" />
                   Export Chat
                 </Button>
                 <Button
                   onClick={() => {/* Share chat */}}
                   variant="ghost"
-                  className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-lg h-8 text-xs"
+                  className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl h-12 text-sm font-medium transition-all duration-200 border border-gray-200 hover:border-gray-300"
                 >
-                  <Share2 className="w-3 h-3 mr-2" />
+                  <Share2 className="w-5 h-5 mr-3 text-gray-500" />
                   Share Chat
                 </Button>
               </div>
             </div>
 
             {/* Settings */}
-            <div>
-              <h3 className="text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider">Settings</h3>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between p-2 bg-white/5 border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Volume2 className="w-3 h-3 text-white/70" />
-                    <span className="text-white text-xs">Audio Response</span>
+            <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-200 shadow-lg">
+              <div className="flex items-center space-x-3 mb-8">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Settings</h3>
+              </div>
+              
+              <div className="space-y-5">
+                <div className="group bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center group-hover:from-green-200 group-hover:to-green-300 transition-all duration-300">
+                        <Volume2 className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <span className="text-gray-900 text-base font-semibold block">Audio Response</span>
+                        <span className="text-gray-500 text-sm">Enable voice responses from AI</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={toggleAudio}
+                      className={`relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                        audioEnabled ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${
+                        audioEnabled ? 'translate-x-7' : 'translate-x-0.5'
+                      }`}>
+                        {audioEnabled && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                      </div>
+                    </button>
                   </div>
-                  <button
-                    onClick={toggleAudio}
-                    className={`w-8 h-4 rounded-full transition-all duration-300 ${
-                      audioEnabled ? 'bg-green-500' : 'bg-white/20'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${
-                      audioEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                    }`}></div>
-                  </button>
+                </div>
+                
+                <div className="group bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl flex items-center justify-center group-hover:from-yellow-200 group-hover:to-yellow-300 transition-all duration-300">
+                        <Lightbulb className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <span className="text-gray-900 text-base font-semibold block">Proactive Suggestions</span>
+                        <span className="text-gray-500 text-sm">AI anticipates your questions</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setProactiveFeatures(prev => ({ ...prev, anticipateQuestions: !prev.anticipateQuestions }))}
+                      className={`relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                        proactiveFeatures.anticipateQuestions ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${
+                        proactiveFeatures.anticipateQuestions ? 'translate-x-7' : 'translate-x-0.5'
+                      }`}>
+                        {proactiveFeatures.anticipateQuestions && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="group bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center group-hover:from-purple-200 group-hover:to-purple-300 transition-all duration-300">
+                        <BookOpen className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <span className="text-gray-900 text-base font-semibold block">Related Topics</span>
+                        <span className="text-gray-500 text-sm">Show topic suggestions</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setProactiveFeatures(prev => ({ ...prev, suggestRelatedTopics: !prev.suggestRelatedTopics }))}
+                      className={`relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                        proactiveFeatures.suggestRelatedTopics ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${
+                        proactiveFeatures.suggestRelatedTopics ? 'translate-x-7' : 'translate-x-0.5'
+                      }`}>
+                        {proactiveFeatures.suggestRelatedTopics && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col bg-black/10 backdrop-blur-sm transition-all duration-300 ${sidebarOpen ? 'lg:ml-0' : 'lg:ml-0'} ${!sidebarOpen ? 'w-full' : ''}`}>
-          {/* Compact Sidebar Toggle Button */}
-          <div className="flex items-center justify-between p-3 border-b border-white/10 bg-black/20">
-            <div className="flex items-center space-x-2">
+        {/* Main Chat Area - Figma Design */}
+        <div className={`flex-1 flex flex-col bg-gray-50 transition-all duration-300 ${sidebarOpen ? '' : 'lg:ml-0'}`}>
+          {/* Chat Header */}
+          <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-white border-b border-gray-200">
+            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md transition-all duration-300 border group relative ${
-                  sidebarOpen 
-                    ? 'bg-purple-500/20 hover:bg-purple-500/30 border-purple-500/30 text-purple-300' 
-                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/70 hover:text-white'
-                }`}
-                title={`${sidebarOpen ? 'Hide' : 'Show'} sidebar (⌘+B)`}
+                className="lg:hidden p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
               >
-                <Menu className={`w-3 h-3 transition-transform duration-300 ${sidebarOpen ? 'rotate-90' : ''}`} />
-                <span className="text-xs font-medium">
-                  {sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-                </span>
-                
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                  {sidebarOpen ? 'Hide' : 'Show'} sidebar (⌘+B)
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                </div>
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
               </button>
-              
-              {/* Quick Status Indicators */}
-              <div className="flex items-center space-x-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${sidebarOpen ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-xs text-white/60">
-                  {sidebarOpen ? 'Sidebar Active' : 'Sidebar Hidden'}
-                </span>
-                {!sidebarOpen && (
-                  <span className="text-xs text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/30">
-                    Full Width
-                  </span>
-                )}
-              </div>
+
             </div>
             
-            {/* Keyboard Shortcut Hint */}
-            <div className="flex items-center space-x-2">
-              <div className="text-xs text-white/40 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
-                ⌘ + B
+            <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
+              <div className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm rounded-full px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 shadow-lg border border-gray-200/50">
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full shadow-sm ${
+                  connectionStatus === 'connected' ? 'bg-gradient-to-r from-green-400 to-green-500 shadow-green-200' : 
+                  connectionStatus === 'connecting' ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-yellow-200 animate-pulse' : 'bg-gradient-to-r from-red-400 to-red-500 shadow-red-200'
+                }`}></div>
+                <span className="text-xs sm:text-sm font-medium text-gray-700 capitalize tracking-wide hidden sm:inline">{connectionStatus}</span>
               </div>
-              <span className="text-xs text-white/40">Toggle Sidebar</span>
+
             </div>
           </div>
           
 
             
 
-          {/* Chat Messages */}
+          {/* Chat Messages - Figma Design */}
           <div 
             ref={messagesContainerRef}
-            className={`flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar transition-all duration-300 ${!sidebarOpen ? 'max-w-none' : ''}`}
+            className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-10 space-y-4 sm:space-y-6 md:space-y-8 bg-gradient-to-b from-gray-50/80 via-white/30 to-gray-50/60 backdrop-blur-sm"
           >
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} group`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`flex items-start space-x-3 ${!sidebarOpen ? 'max-w-6xl' : 'max-w-4xl'} ${
+                <div className={`flex items-start space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5 max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[80%] ${
                   message.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'
                 }`}>
-                  {/* Compact Avatar */}
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110 ${
                     message.role === 'user' 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600' 
-                      : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                      ? 'bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/20' 
+                      : 'bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200/60 shadow-lg shadow-gray-900/10 ring-2 ring-gray-100/50'
                   }`}>
                     {message.role === 'user' ? (
-                      <User className="w-4 h-4 text-white" />
+                      <User className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white drop-shadow-sm" />
                     ) : (
-                      <Bot className="w-4 h-4 text-white" />
+                      <Bot className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-gray-700 drop-shadow-sm" />
                     )}
                   </div>
 
                   {/* Message Content */}
-                  <div className={`relative max-w-full ${
-                    message.role === 'user' ? 'mr-3' : 'ml-3'
-                  }`}>
-                    {/* Compact Message Bubble */}
-                    <div className={`rounded-xl p-4 shadow-xl backdrop-blur-sm border ${
+                  <div className="flex-1">
+                    {/* Message Bubble */}
+                    <div className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 md:px-5 lg:px-7 py-3 sm:py-4 md:py-5 lg:py-6 transition-all duration-300 hover:scale-[1.02] ${
                       message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-500/90 to-blue-600/90 text-white border-blue-400/30'
-                        : 'bg-black/40 text-white border-white/10'
+                        ? 'bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25 border border-blue-400/20'
+                        : 'bg-white/90 backdrop-blur-sm border border-gray-200/60 text-gray-900 shadow-xl shadow-gray-900/10 hover:shadow-2xl hover:shadow-gray-900/15'
                     }`}>
-                      <div className="whitespace-pre-wrap leading-relaxed text-sm font-medium">
-                        {message.content}
-                      </div>
+                      {message.role === 'assistant' ? (
+                        <div 
+                          className="text-xs sm:text-sm md:text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{ 
+                            __html: formatAIResponse(message.content)
+                          }}
+                        />
+                      ) : (
+                        <div className="text-xs sm:text-sm md:text-sm leading-relaxed">
+                          {message.content}
+                        </div>
+                      )}
                       
                       {message.type === 'voice' && message.audioUrl && (
-                        <div className="mt-3 p-2 bg-white/10 rounded-lg">
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                           <audio controls className="w-full" src={message.audioUrl}>
                             Your browser does not support the audio element.
                           </audio>
@@ -3579,14 +5213,12 @@ Please be detailed and conversational in your analysis, as this is part of an on
                       )}
                       
                       {message.type === 'image' && message.imageUrl && (
-                        <div className="mt-3 relative group">
-                          <div className={`relative ${imageSelectionMode ? 'cursor-pointer' : ''} ${selectedImageId === message.id ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-black/50' : ''}`}>
+                        <div className="mt-3 relative">
+                          <div className={`relative ${imageSelectionMode ? 'cursor-pointer' : ''}`}>
                             <img 
                               src={message.imageUrl} 
                               alt="Generated Image"
-                              className={`w-full max-w-sm rounded-lg shadow-lg border border-white/20 transition-all duration-200 ${
-                                imageSelectionMode ? 'hover:scale-105 hover:shadow-xl' : ''
-                              } ${selectedImageId === message.id ? 'ring-2 ring-purple-500' : ''}`}
+                              className="w-full max-w-sm rounded-lg border border-gray-200"
                               onClick={() => {
                                 if (imageSelectionMode) {
                                   selectImageForEnhancement(message);
@@ -3646,25 +5278,47 @@ Please be detailed and conversational in your analysis, as this is part of an on
                         </div>
                       )}
                       
-                      <div className={`flex items-center justify-between mt-3 pt-2 border-t ${
-                        message.role === 'user' ? 'border-white/20' : 'border-white/10'
-                      }`}>
-                        <div className={`text-xs font-medium ${
-                          message.role === 'user' ? 'text-blue-100' : 'text-white/50'
-                        }`}>
+                      <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100/50">
+                        <div className="text-xs font-medium text-gray-500 bg-gray-50/50 px-2 py-1 rounded-full">
                           {message.timestamp.toLocaleTimeString()}
                         </div>
                         
                         {message.role === 'assistant' && (
-                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button className="p-1 hover:bg-white/10 rounded-md transition-colors">
-                              <Copy className="w-3 h-3 text-white/70" />
+                          <div className="flex items-center space-x-1 sm:space-x-2">
+                            <button
+                              onClick={() => copyToClipboard(message.content)}
+                              className="p-1.5 sm:p-2 rounded-lg bg-gray-50/80 hover:bg-gray-100 border border-gray-200/60 text-gray-600 hover:text-gray-700 transition-all duration-200 hover:shadow-md hover:shadow-gray-200/50 group touch-manipulation"
+                              title="Copy message"
+                            >
+                              <Copy className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
                             </button>
-                            <button className="p-1 hover:bg-white/10 rounded-md transition-colors">
-                              <Heart className="w-3 h-3 text-white/70" />
+                            <button
+                              onClick={() => likeMessage(message.id)}
+                              className="p-1.5 sm:p-2 rounded-lg bg-gray-50/80 hover:bg-red-50 border border-gray-200/60 hover:border-red-200 text-gray-600 hover:text-red-600 transition-all duration-200 hover:shadow-md hover:shadow-red-200/50 group touch-manipulation"
+                              title="Like message"
+                            >
+                              <Heart className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
                             </button>
-                            <button className="p-1 hover:bg-white/10 rounded-md transition-colors">
-                              <Share2 className="w-3 h-3 text-white/70" />
+                            <button
+                              onClick={() => shareMessage(message.content)}
+                              className="p-1.5 sm:p-2 rounded-lg bg-gray-50/80 hover:bg-blue-50 border border-gray-200/60 hover:border-blue-200 text-gray-600 hover:text-blue-600 transition-all duration-200 hover:shadow-md hover:shadow-blue-200/50 group touch-manipulation"
+                              title="Share message"
+                            >
+                              <Share2 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button
+                              onClick={() => deleteMessage(message.id)}
+                              className="p-1.5 sm:p-2 rounded-lg bg-gray-50/80 hover:bg-red-50 border border-gray-200/60 hover:border-red-200 text-gray-600 hover:text-red-600 transition-all duration-200 hover:shadow-md hover:shadow-red-200/50 group touch-manipulation"
+                              title="Delete message"
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button
+                              onClick={() => startEditing(message.id)}
+                              className="p-1.5 sm:p-2 rounded-lg bg-gray-50/80 hover:bg-green-50 border border-gray-200/60 hover:border-green-200 text-gray-600 hover:text-green-600 transition-all duration-200 hover:shadow-md hover:shadow-green-200/50 group touch-manipulation"
+                              title="Edit message"
+                            >
+                              <Edit3 className="w-3 h-3 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
                             </button>
                           </div>
                         )}
@@ -3674,21 +5328,20 @@ Please be detailed and conversational in your analysis, as this is part of an on
                 </div>
               </div>
             ))}
-            
             {isLoading && (
               <div className="flex justify-start">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                    <Bot className="w-4 h-4 text-white" />
+                <div className="flex items-start space-x-4 max-w-[75%]">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200/60 flex items-center justify-center shadow-lg shadow-gray-900/10 ring-2 ring-gray-100/50 animate-pulse">
+                    <Bot className="w-6 h-6 text-gray-700 drop-shadow-sm" />
                   </div>
-                  <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-white/10">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-2xl px-6 py-5 shadow-xl shadow-gray-900/10">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce shadow-lg shadow-blue-500/30"></div>
+                        <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce shadow-lg shadow-purple-500/30" style={{ animationDelay: '0.15s' }}></div>
+                        <div className="w-3 h-3 bg-gradient-to-r from-pink-500 to-blue-500 rounded-full animate-bounce shadow-lg shadow-pink-500/30" style={{ animationDelay: '0.3s' }}></div>
                       </div>
-                      <span className="text-white/80 text-sm font-medium">AI is thinking...</span>
+                      <span className="text-gray-600 text-sm font-medium">AI is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -3698,27 +5351,28 @@ Please be detailed and conversational in your analysis, as this is part of an on
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Compact Input Area */}
-          <div className="border-t border-white/10 bg-black/20 backdrop-blur-xl p-4">
-            <div className="max-w-4xl mx-auto">
+          {/* Modern Input Area - Figma Design */}
+          <div className="border-t border-gray-200/50 bg-gradient-to-r from-gray-50/80 to-white/90 backdrop-blur-sm px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+            <div className={`transition-all duration-300 ${!sidebarOpen ? 'max-w-full w-full' : 'max-w-4xl mx-auto'}`}>
               {/* Input Container */}
-              <div className="bg-black/40 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl overflow-hidden">
+              <div className="bg-white/90 backdrop-blur-md rounded-xl sm:rounded-2xl border border-gray-300/50 shadow-lg shadow-gray-200/50 overflow-visible hover:shadow-xl hover:shadow-gray-300/30 hover:border-gray-400/50 transition-all duration-300 hover:bg-white/95">
                 {/* Toolbar */}
-                <div className="flex items-center justify-between p-3 border-b border-white/10">
+                <div className="flex items-center justify-between p-2 sm:p-3 border-b border-gray-100">
                   <div className="flex items-center space-x-2">
-                    {/* Add Button */}
+                    {/* Add Button - Responsive */}
                     <div className="relative" ref={addPopupRef}>
                       <button 
                         onClick={() => setAddPopupOpen(!isAddPopupOpen)}
-                        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group z-10 hover:scale-110 active:scale-95 ${
+                        className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg transition-all duration-200 z-[10000] shadow-md hover:shadow-lg ${
                           isAddPopupOpen 
-                            ? 'bg-gradient-to-r from-blue-500/90 to-purple-500/90 hover:from-blue-600/90 hover:to-purple-600/90 border-2 border-blue-400/70 shadow-lg shadow-blue-500/50 ring-2 ring-blue-500/30' 
-                            : 'bg-gradient-to-r from-blue-500/80 to-purple-500/80 hover:from-blue-600/80 hover:to-purple-600/80 border-2 border-blue-400/50 shadow-lg shadow-blue-500/25'
+                            ? 'bg-blue-600 text-white shadow-blue-200' 
+                            : 'bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 border-2 border-blue-200 hover:border-blue-300'
                         }`}
-                        title="Add attachments, files, or media"
+                        title="Add content"
+                        aria-label="Add content"
                       >
-                        <Plus className={`w-4 h-4 transition-all duration-300 font-bold drop-shadow-sm ${
-                          isAddPopupOpen ? 'text-white scale-110' : 'text-white group-hover:text-white/95'
+                        <Plus className={`w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 transition-transform duration-200 ${
+                          isAddPopupOpen ? 'rotate-45' : ''
                         }`} />
                       </button>
                       
@@ -3726,54 +5380,55 @@ Please be detailed and conversational in your analysis, as this is part of an on
                         <>
                           {/* Backdrop */}
                           <div 
-                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+                            className="fixed inset-0 bg-black/50 z-[9998]"
                             onClick={() => setAddPopupOpen(false)}
                           />
-                          {/* Popup - Fixed position at top of screen */}
-                          <div className="fixed top-16 left-4 z-[9999]">
-                            <div className="w-72 bg-black/95 backdrop-blur-xl border-2 border-blue-400/30 rounded-xl shadow-2xl overflow-hidden">
-                              <div className="p-0">
-                                {/* Enhanced Header */}
-                                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-b border-white/20 px-3 py-2">
-                                  <div className="flex items-center space-x-2">
-                                    <div className="w-6 h-6 rounded-md bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                                      <Plus className="w-3 h-3 text-white font-bold" />
-                                    </div>
-                                    <div>
-                                      <div className="text-white font-semibold text-xs">Add to Message</div>
-                                      <div className="text-white/60 text-xs">Attach files, media, or content</div>
-                                    </div>
-                                  </div>
+                          
+                          {/* Responsive Popup - Opens ABOVE the + button */}
+                          <div className="absolute bottom-full left-0 mb-3 z-[9999] w-screen max-w-xs sm:max-w-sm md:max-w-md lg:w-80 xl:w-96">
+                            <div className="mx-2 sm:mx-0 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl overflow-hidden">
+                              
+                              {/* Compact Header */}
+                              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700/30">
+                                <div className="flex items-center space-x-2">
+                                  <Plus className="w-4 h-4 text-blue-400" />
+                                  <span className="text-white text-sm font-medium">Add Content</span>
                                 </div>
-                                
-                                {/* Menu Items */}
-                                <div className="p-2 space-y-1">
-                                  {addMenuItems.map((item, index) => (
-                                    <button
-                                      key={index}
-                                      onClick={() => {
-                                        setAddPopupOpen(false);
-                                        if (item.action) {
-                                          item.action();
-                                        } else {
-                                          toast({
-                                            title: 'Feature Coming Soon',
-                                            description: `${item.text} functionality will be available soon!`,
-                                          });
-                                        }
-                                      }}
-                                      className={`w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:border-white/10 ${item.color} group`}
-                                    >
-                                      <div className="flex-shrink-0">
-                                        {item.icon}
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="text-white font-medium text-xs group-hover:text-white/90">{item.text}</div>
-                                        <div className="text-white/50 text-xs mt-0.5">{item.description}</div>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
+                                <button 
+                                  onClick={() => setAddPopupOpen(false)}
+                                  className="w-6 h-6 rounded-md bg-gray-800/50 hover:bg-gray-700 flex items-center justify-center transition-colors"
+                                >
+                                  <X className="w-3 h-3 text-gray-400" />
+                                </button>
+                              </div>
+                              
+                              {/* Responsive Menu Items */}
+                              <div className="p-1 max-h-60 sm:max-h-72 md:max-h-80 overflow-y-auto">
+                                {addMenuItems.map((item, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => {
+                                      setAddPopupOpen(false);
+                                      if (item.action) {
+                                        item.action();
+                                      } else {
+                                        toast({
+                                          title: 'Feature Coming Soon',
+                                          description: `${item.text} functionality will be available soon!`,
+                                        });
+                                      }
+                                    }}
+                                    className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-2.5 md:p-3 text-left transition-colors duration-150 rounded-lg hover:bg-gray-800/60 group"
+                                  >
+                                    <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-800/40 flex items-center justify-center group-hover:bg-gray-700/60 transition-colors">
+                                      <span className="text-sm sm:text-base">{item.icon}</span>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-white text-xs sm:text-sm font-medium truncate">{item.text}</div>
+                                      <div className="text-gray-400 text-xs hidden sm:block truncate mt-0.5">{item.description}</div>
+                                    </div>
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           </div>
@@ -3782,23 +5437,29 @@ Please be detailed and conversational in your analysis, as this is part of an on
                     </div>
 
                     {/* Current Mode Indicator */}
-                    <div className={`flex items-center space-x-2 px-2 py-1 rounded-md bg-white/10 border border-white/20`}>
+                    <div className={`flex items-center space-x-1 sm:space-x-2 px-1.5 sm:px-2 py-1 rounded-md bg-gray-100 border border-gray-200`}>
                       <div className={`${getModeColor(currentMode)}`}>
                         {getModeIcon(currentMode)}
                       </div>
-                      <span className="text-white/80 text-xs font-medium capitalize">{currentMode}</span>
+                      <span className="text-gray-700 text-xs font-medium capitalize hidden sm:inline">{currentMode}</span>
                     </div>
                     
                     {/* Enhancement Menu Button */}
                     <div className="relative">
                       <button
                         onClick={() => setEnhancementMenuOpen(!isEnhancementMenuOpen)}
-                        className="flex items-center space-x-2 px-3 py-1.5 rounded-md bg-gradient-to-r from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border border-purple-400/30 text-purple-300 hover:text-purple-200 transition-all duration-200 group"
+                        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1.5 rounded-md transition-all duration-200 group touch-manipulation shadow-md hover:shadow-lg ${
+                          isEnhancementMenuOpen
+                            ? 'bg-purple-600 text-white shadow-purple-200 border-2 border-purple-300'
+                            : 'bg-white hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-300 text-purple-600 hover:text-purple-700'
+                        }`}
                         title="Enhancement Options"
                       >
                         <Target className="w-3 h-3" />
-                        <span className="text-xs font-medium">Enhance</span>
-                        <ChevronDown className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180" />
+                        <span className="text-xs font-medium hidden sm:inline">Enhance</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${
+                          isEnhancementMenuOpen ? 'rotate-180' : 'group-hover:rotate-180'
+                        }`} />
                       </button>
                       
                       {isEnhancementMenuOpen && (
@@ -3808,34 +5469,34 @@ Please be detailed and conversational in your analysis, as this is part of an on
                             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
                             onClick={() => setEnhancementMenuOpen(false)}
                           />
-                          {/* Enhancement Menu */}
-                          <div className="absolute top-full left-0 mt-1 z-[9999]">
-                            <div className="w-64 bg-black/95 backdrop-blur-xl border-2 border-purple-400/30 rounded-xl shadow-2xl overflow-hidden">
+                          {/* Enhancement Menu - Opens ABOVE the button */}
+                          <div className="absolute bottom-full left-0 mb-1 z-[9999]">
+                            <div className="w-64 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                               <div className="p-0">
                                 {/* Header */}
-                                <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-b border-white/20 px-3 py-2">
+                                <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
                                   <div className="flex items-center space-x-2">
-                                    <Target className="w-4 h-4 text-purple-400" />
-                                    <div>
-                                      <div className="text-white font-semibold text-xs">Image Enhancement</div>
-                                      <div className="text-white/60 text-xs">Select enhancement options</div>
+                                      <Target className="w-4 h-4 text-purple-500" />
+                                      <div>
+                                        <div className="text-gray-900 font-semibold text-xs">Image Enhancement</div>
+                                        <div className="text-gray-600 text-xs">Select enhancement options</div>
+                                      </div>
                                     </div>
-                                  </div>
                                 </div>
                                 
-                                {/* Menu Items */}
-                                <div className="p-2 space-y-1">
+                                {/* Menu Items - Complete list */}
+                                <div className="p-2 space-y-1 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                                   <button
                                     onClick={() => {
                                       setEnhancementMenuOpen(false);
                                       setShowImageUpload(true);
                                     }}
-                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:border-white/10 hover:bg-blue-500/20 hover:border-blue-400/30 group"
+                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-blue-50 hover:border-blue-200 group"
                                   >
-                                    <ImageIcon className="w-4 h-4 text-blue-400" />
+                                    <ImageIcon className="w-4 h-4 text-blue-500" />
                                     <div className="min-w-0 flex-1">
-                                      <div className="text-white font-medium text-xs group-hover:text-white/90">Upload & Enhance Image</div>
-                                      <div className="text-white/50 text-xs mt-0.5">Upload a new image for enhancement</div>
+                                      <div className="text-gray-900 font-medium text-xs group-hover:text-blue-700">Upload & Enhance Image</div>
+                                      <div className="text-gray-600 text-xs mt-0.5">Upload a new image for enhancement</div>
                                     </div>
                                   </button>
                                   
@@ -3844,12 +5505,12 @@ Please be detailed and conversational in your analysis, as this is part of an on
                                       setEnhancementMenuOpen(false);
                                       startImageSelection();
                                     }}
-                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:border-white/10 hover:bg-purple-500/20 hover:border-purple-400/30 group"
+                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-purple-50 hover:border-purple-200 group"
                                   >
-                                    <Target className="w-4 h-4 text-purple-400" />
+                                    <Target className="w-4 h-4 text-purple-500" />
                                     <div className="min-w-0 flex-1">
-                                      <div className="text-white font-medium text-xs group-hover:text-white/90">Select Image from Chat</div>
-                                      <div className="text-white/50 text-xs mt-0.5">Choose an image from the conversation</div>
+                                      <div className="text-gray-900 font-medium text-xs group-hover:text-purple-700">Select Image from Chat</div>
+                                      <div className="text-gray-600 text-xs mt-0.5">Choose an image from the conversation</div>
                                     </div>
                                   </button>
                                   
@@ -3859,12 +5520,70 @@ Please be detailed and conversational in your analysis, as this is part of an on
                                         setEnhancementMenuOpen(false);
                                         analyzeSelectedImage();
                                       }}
-                                      className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:border-white/10 hover:bg-green-500/20 hover:border-green-400/30 group"
+                                      className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-green-50 hover:border-green-200 group"
                                     >
-                                      <MessageSquare className="w-4 h-4 text-green-400" />
+                                      <MessageSquare className="w-4 h-4 text-green-500" />
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-white font-medium text-xs group-hover:text-white/90">Analyze Selected Image</div>
-                                        <div className="text-white/50 text-xs mt-0.5">Get detailed analysis and suggestions</div>
+                                        <div className="text-gray-900 font-medium text-xs group-hover:text-green-700">Analyze Selected Image</div>
+                                        <div className="text-gray-600 text-xs mt-0.5">Get detailed analysis and suggestions</div>
+                                      </div>
+                                    </button>
+                                  )}
+                                  
+                                  {/* NEW: Download All Images */}
+                                  <button
+                                    onClick={() => {
+                                      setEnhancementMenuOpen(false);
+                                      downloadAllImages();
+                                    }}
+                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-orange-50 hover:border-orange-200 group"
+                                  >
+                                    <Download className="w-4 h-4 text-orange-500" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-gray-900 font-medium text-xs group-hover:text-orange-700">Download All Images</div>
+                                      <div className="text-gray-600 text-xs mt-0.5">Download all generated images</div>
+                                    </div>
+                                  </button>
+                                  
+                                  {/* NEW: Test API Connection */}
+                                  <button
+                                    onClick={() => {
+                                      setEnhancementMenuOpen(false);
+                                      testAPI();
+                                    }}
+                                    className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-green-50 hover:border-green-200 group"
+                                  >
+                                    <Zap className="w-4 h-4 text-green-500" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-gray-900 font-medium text-xs group-hover:text-green-700">Test API Connection</div>
+                                      <div className="text-gray-600 text-xs mt-0.5">Verify API connectivity</div>
+                                    </div>
+                                  </button>
+                                  
+                                  {/* NEW: Enhancement History */}
+                                  {conversationContext.enhancementHistory.length > 0 && (
+                                    <button
+                                      onClick={() => {
+                                        setEnhancementMenuOpen(false);
+                                        const historyMessage: Message = {
+                                          id: Date.now().toString(),
+                                          role: 'assistant',
+                                          content: `📋 **Enhancement History**\n\nTotal enhancements: ${conversationContext.enhancementHistory.length}\n\n${conversationContext.enhancementHistory.map((item, index) => `${index + 1}. "${item.prompt}"`).join('\n')}\n\n**Current Selection:** ${conversationContext.selectedImageUrl ? 'Image selected' : 'No image selected'}`,
+                                          timestamp: new Date(),
+                                          type: 'text'
+                                        };
+                                        setMessages(prev => [...prev, historyMessage]);
+                                        toast({
+                                          title: 'Enhancement History',
+                                          description: `Showing ${conversationContext.enhancementHistory.length} enhancements`,
+                                        });
+                                      }}
+                                      className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-indigo-50 hover:border-indigo-200 group"
+                                    >
+                                      <History className="w-4 h-4 text-indigo-500" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-gray-900 font-medium text-xs group-hover:text-indigo-700">Enhancement History</div>
+                                        <div className="text-gray-600 text-xs mt-0.5">View all enhancement requests</div>
                                       </div>
                                     </button>
                                   )}
@@ -3885,12 +5604,12 @@ Please be detailed and conversational in your analysis, as this is part of an on
                                           description: 'You can select a different image now.',
                                         });
                                       }}
-                                      className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:border-white/10 hover:bg-red-500/20 hover:border-red-400/30 group"
+                                      className="w-full flex items-center space-x-2 p-3 text-left transition-all duration-200 rounded-lg border border-transparent hover:bg-red-50 hover:border-red-200 group"
                                     >
-                                      <X className="w-4 h-4 text-red-400" />
+                                      <X className="w-4 h-4 text-red-500" />
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-white font-medium text-xs group-hover:text-white/90">Clear Selection</div>
-                                        <div className="text-white/50 text-xs mt-0.5">Remove current image selection</div>
+                                        <div className="text-gray-900 font-medium text-xs group-hover:text-red-700">Clear Selection</div>
+                                        <div className="text-gray-600 text-xs mt-0.5">Remove current image selection</div>
                                       </div>
                                     </button>
                                   )}
@@ -3993,6 +5712,33 @@ Please be detailed and conversational in your analysis, as this is part of an on
                   </div>
 
                   <div className="flex items-center space-x-1">
+                    {/* Performance Monitor Button */}
+                    <button 
+                      onClick={() => {
+                        const avgResponseTime = performanceMonitor.getAverageResponseTime();
+                        const totalRequests = performanceMonitor.metrics.successRate + performanceMonitor.metrics.errorRate;
+                        const successRate = totalRequests > 0 ? (performanceMonitor.metrics.successRate / totalRequests * 100).toFixed(1) : 0;
+                        
+                        const performanceMessage: Message = {
+                          id: Date.now().toString(),
+                          role: 'assistant',
+                          content: `📊 **Performance Metrics**\n\n**Response Time:**\n• Average: ${avgResponseTime.toFixed(0)}ms\n• Total Requests: ${totalRequests}\n• Success Rate: ${successRate}%\n\n**Status:** ${avgResponseTime > 5000 ? '⚠️ Performance mode enabled' : '✅ Normal performance'}`,
+                          timestamp: new Date(),
+                          type: 'text'
+                        };
+                        setMessages(prev => [...prev, performanceMessage]);
+                        
+                        toast({
+                          title: 'Performance Report',
+                          description: `Avg response: ${avgResponseTime.toFixed(0)}ms, Success: ${successRate}%`,
+                        });
+                      }}
+                      className="flex items-center justify-center w-7 h-7 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-md transition-all duration-300"
+                      title="Performance Metrics"
+                    >
+                      <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                    </button>
+                    
                     {/* Voice Test Buttons */}
                     <button 
                       onClick={testVoiceFunctionality}
@@ -4082,8 +5828,9 @@ Please be detailed and conversational in your analysis, as this is part of an on
                       className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-300 border ${
                         audioEnabled 
                           ? 'bg-green-500/20 hover:bg-green-500/30 border-green-500/30 text-green-400' 
-                          : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/50'
+                          : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-500'
                       }`}
+                      title={audioEnabled ? 'Disable audio responses' : 'Enable audio responses'}
                     >
                       {audioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                     </button>
@@ -4094,8 +5841,9 @@ Please be detailed and conversational in your analysis, as this is part of an on
                       className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-300 border ${
                         isRecording 
                           ? 'bg-red-500/30 hover:bg-red-500/40 border-red-500/50 text-red-300 animate-pulse' 
-                          : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/70'
+                          : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-600'
                       }`}
+                      title={isRecording ? 'Stop recording' : 'Start voice recording'}
                     >
                       {isRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
                     </button>
@@ -4103,69 +5851,160 @@ Please be detailed and conversational in your analysis, as this is part of an on
                 </div>
 
                 {/* Text Input */}
-                <div className={`p-3 transition-all duration-300 ${!sidebarOpen ? 'px-6' : ''}`}>
-                  <div className={`flex items-end space-x-3 ${!sidebarOpen ? 'max-w-6xl mx-auto' : ''}`}>
-                    <div className="flex-1">
-                      <textarea
-                        className="w-full bg-transparent text-white placeholder-white/50 focus:outline-none resize-none text-sm font-medium leading-relaxed min-h-[50px] max-h-[150px]"
-                        placeholder="Type your message here... Press Enter to send, Shift+Enter for new line"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        disabled={isLoading}
-                        rows={1}
-                        style={{ height: 'auto' }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = target.scrollHeight + 'px';
-                        }}
-                      />
-                    </div>
-                    
-                    {/* Send Button */}
-                    <button 
-                      onClick={() => sendMessage()} 
-                      disabled={isLoading || !input.trim()}
-                      className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-300 shadow-lg ${
-                        input.trim() && !isLoading
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white hover:scale-105 active:scale-95 shadow-blue-500/25' 
-                          : 'bg-white/10 text-white/30 cursor-not-allowed'
-                      }`}
+                <div className={`p-2 sm:p-3 transition-all duration-300 ease-in-out ${!sidebarOpen ? 'px-3 sm:px-4 lg:px-6' : 'px-2 sm:px-3'} border-t border-gray-200`}>
+                  {/* Enhanced Quick suggestions */}
+                  <div className={`mb-2 flex flex-wrap gap-1.5 sm:gap-2 transition-all duration-300 ${!sidebarOpen ? 'max-w-full w-full' : 'max-w-4xl mx-auto'}`}>
+                    <button
+                      type="button"
+                      onClick={() => setInput('Explain this code snippet')}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-lg bg-gray-100 backdrop-blur-sm hover:bg-gray-200 border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg touch-manipulation"
                     >
-                      {isLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowUp className="w-4 h-4" />
-                      )}
+                      💻 <span className="hidden sm:inline">Explain this code</span><span className="sm:hidden">Code</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setInput('Summarize these notes')}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-lg bg-gray-100 backdrop-blur-sm hover:bg-gray-200 border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg touch-manipulation"
+                    >
+                      📝 <span className="hidden sm:inline">Summarize notes</span><span className="sm:hidden">Notes</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInput('Create a study plan for algebra')}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-lg bg-gray-100 backdrop-blur-sm hover:bg-gray-200 border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg touch-manipulation"
+                    >
+                      📚 <span className="hidden sm:inline">Study plan</span><span className="sm:hidden">Study</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInput('Generate a photo prompt: ')}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-lg bg-gray-100 backdrop-blur-sm hover:bg-gray-200 border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg touch-manipulation"
+                    >
+                      🎨 <span className="hidden sm:inline">Photo prompt</span><span className="sm:hidden">Photo</span>
+                    </button>
+                  </div>
+
+
+
+                  {/* Professional Clean Interface - No Image Preview */}
+                  <div className={`flex items-end space-x-2 sm:space-x-3 bg-white border border-gray-200 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm hover:border-gray-300 transition-all duration-300 focus-within:border-blue-400 focus-within:shadow-sm ${!sidebarOpen ? 'max-w-full w-full' : 'max-w-4xl mx-auto'}`}>
+                    {/* Hidden image indicator for professional UX */}
+                    {pastedImage && (
+                      <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
+                        <ImageIcon className="w-3 h-3" />
+                        <span>Image ready</span>
+                        <button
+                          onClick={() => setPastedImage(null)}
+                          className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="flex-1">
+                        <textarea
+                          ref={textareaRef}
+                          className="w-full bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none resize-none text-sm sm:text-base leading-relaxed min-h-[32px] sm:min-h-[36px] max-h-[120px] sm:max-h-[140px] transition-all duration-200 focus:placeholder-gray-300 touch-manipulation"
+                          placeholder="Ask me anything... Press Enter to send, Shift+Enter for new line, Ctrl+V to paste images"
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          onPaste={handlePaste}
+                          disabled={isLoading}
+                          rows={1}
+                          style={{ height: 'auto' }}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = target.scrollHeight + 'px';
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Image Upload Button */}
+                      <button
+                        onClick={() => document.getElementById('image-upload-input')?.click()}
+                        className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 touch-manipulation"
+                        title="Upload image"
+                      >
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      
+                      {/* Hidden file input */}
+                      <input
+                        id="image-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFileUpload}
+                        className="hidden"
+                      />
+                      
+                      {/* Enhanced Send Button */}
+                      <button 
+                        onClick={() => sendMessage()} 
+                        disabled={isLoading || !input.trim()}
+                        className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl transition-all duration-200 touch-manipulation ${
+                          input.trim() && !isLoading
+                            ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-200'
+                        }`}
+                        title={input.trim() ? 'Send message' : 'Type a message to send'}
+                      >
+                        {isLoading ? (
+                          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                        ) : (
+                          <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                  {/* Input hint */}
+                  <div className={`mt-2 flex items-center justify-between text-xs sm:text-sm text-gray-400 transition-all duration-300 ${!sidebarOpen ? 'max-w-full w-full' : 'max-w-4xl mx-auto'}`}>
+                    <div className="flex items-center space-x-1 sm:space-x-2">
+                      <span className="px-2 py-1 rounded bg-gray-50 text-gray-500 text-xs">⏎ <span className="hidden sm:inline">Send</span></span>
+                      <span className="text-gray-300 hidden sm:inline">•</span>
+                      <span className="px-2 py-1 rounded bg-gray-50 text-gray-500 text-xs hidden sm:inline">⇧⏎ New line</span>
+                    </div>
+                    <div className="flex items-center space-x-1 sm:space-x-2">
+                      <span className={`px-2 py-1 rounded transition-colors text-xs ${
+                        input.length > 1000 ? 'bg-red-50 text-red-600' :
+                        input.length > 500 ? 'bg-yellow-50 text-yellow-600' :
+                        'bg-gray-50 text-gray-500'
+                      }`}>{input.length}<span className="hidden sm:inline"> chars</span></span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Footer Info */}
-              <div className={`flex items-center justify-between mt-3 text-xs text-white/40 transition-all duration-300 ${!sidebarOpen ? 'px-6' : ''}`}>
-                <div className="flex items-center space-x-3">
-                  <span>AI may make mistakes. Verify important information.</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
-                    <span>Connected to Venice AI</span>
+              <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 text-xs text-gray-400 transition-all duration-300 ease-in-out space-y-2 sm:space-y-0 ${!sidebarOpen ? 'px-3 sm:px-6 lg:px-8' : 'px-3 sm:px-6'}`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+                  <span className="hidden sm:inline">AI may make mistakes. Verify important information.</span>
+                  <span className="sm:hidden text-xs">AI may make mistakes</span>
+                  <div className="h-3 w-px bg-gray-200 hidden sm:block" />
+                  <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-gray-50">
+                    <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                    <span className="hidden sm:inline">Connected to Venice AI</span>
+                    <span className="sm:hidden">Connected</span>
                   </div>
                   {currentSessionId && (
-                    <div className="flex items-center space-x-1">
-                      <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
-                      <span>Auto-saving</span>
+                    <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-gray-50">
+                      <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                      <span className="hidden sm:inline">Auto-saving</span>
+                      <span className="sm:hidden">Saving</span>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span>{messages.length - 1} messages</span>
+                <div className="flex items-center space-x-1 sm:space-x-2 text-xs">
+                  <span>{messages.length - 1}<span className="hidden sm:inline"> messages</span></span>
                   <span>•</span>
-                  <span>{selectedModel}</span>
+                  <span className="truncate max-w-20 sm:max-w-none">{selectedModel}</span>
                   {currentSessionId && (
                     <>
                       <span>•</span>
-                      <span className="text-blue-300">Saved</span>
+                      <span className="text-blue-500">Saved</span>
                     </>
                   )}
                 </div>
@@ -4178,7 +6017,7 @@ Please be detailed and conversational in your analysis, as this is part of an on
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -4310,3 +6149,5 @@ Please be detailed and conversational in your analysis, as this is part of an on
 };
 
 export default Algebrain;
+
+

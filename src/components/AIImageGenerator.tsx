@@ -205,12 +205,15 @@ const AIImageGenerator: React.FC = () => {
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
+                    <div className="relative mr-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <div className="absolute inset-0 w-4 h-4 rounded-full bg-blue-400/30 animate-ping"></div>
+                    </div>
+                    <span className="animate-pulse">Generating...</span>
                   </>
                 ) : (
                   <>
-                    <ImageIcon className="w-4 h-4 mr-2" />
+                    <ImageIcon className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
                     Generate Image
                   </>
                 )}
@@ -260,8 +263,9 @@ const AIImageGenerator: React.FC = () => {
                                 size="sm"
                                 variant="secondary"
                                 onClick={() => regenerateImage(image.id)}
+                                className="group/refresh"
                               >
-                                <RefreshCw className="w-4 h-4" />
+                                <RefreshCw className="w-4 h-4 transition-transform duration-200 group-hover/refresh:rotate-180" />
                               </Button>
                             </div>
                           </div>
@@ -287,4 +291,4 @@ const AIImageGenerator: React.FC = () => {
   );
 };
 
-export default AIImageGenerator; 
+export default AIImageGenerator;

@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 // Replace this with your actual API token
 const API_TOKEN = 'YOUR_API_TOKEN_HERE'; // Replace with your OpenAI or Stability AI token
@@ -48,4 +48,4 @@ if (API_TOKEN === 'YOUR_API_TOKEN_HERE') {
   console.log('   - Stability AI: https://platform.stability.ai/');
 } else {
   generateImage();
-} 
+}

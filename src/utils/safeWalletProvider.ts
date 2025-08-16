@@ -25,27 +25,32 @@ class SafeWalletProviderManager {
   }
 
   private detectProviders() {
-    // MetaMask - check if it exists and is accessible
+    // MetaMask detection - safe approach
     if (typeof window !== 'undefined' && window.ethereum) {
       try {
-        // Test if we can access the ethereum object
-        const testProvider = window.ethereum;
-        if (testProvider && typeof testProvider.request === 'function') {
+        const metamaskProvider = window.ethereum;
+        if (metamaskProvider && typeof metamaskProvider.request === 'function') {
           this.providers.set('metamask', {
             name: 'MetaMask',
             isAvailable: true,
-            request: testProvider.request.bind(testProvider),
-            on: testProvider.on.bind(testProvider),
-            removeListener: testProvider.removeListener.bind(testProvider)
+            request: metamaskProvider.request.bind(metamaskProvider),
+            on: metamaskProvider.on.bind(metamaskProvider),
+            removeListener: metamaskProvider.removeListener.bind(metamaskProvider)
           });
           console.log('✅ MetaMask detected and available');
+          
+          // Set MetaMask as the default active provider
+          if (!this.activeProvider) {
+            this.activeProvider = 'metamask';
+            console.log('✅ Active wallet provider set to: metamask');
+          }
         }
       } catch (error) {
         console.log('⚠️ MetaMask detected but not accessible:', error);
       }
     }
-
-    // Coinbase Wallet
+    
+    // Coinbase Wallet (if you want to keep this one)
     if (typeof window !== 'undefined' && (window as any).coinbaseWalletExtension) {
       try {
         const coinbaseProvider = (window as any).coinbaseWalletExtension;
@@ -140,7 +145,6 @@ class SafeWalletProviderManager {
 
   public async getBalance(address: string): Promise<string> {
     const provider = this.getActiveProvider();
-    
     if (!provider) {
       return '0';
     }
@@ -205,6 +209,10 @@ class SafeWalletProviderManager {
       totalProviders: availableProviders.length
     };
   }
+
+  public refreshProviders(): void {
+    this.detectProviders();
+  }
 }
 
 // Create and export the singleton instance
@@ -214,8 +222,12 @@ export const safeWalletProvider = SafeWalletProviderManager.getInstance();
 if (typeof window !== 'undefined') {
   // Small delay to ensure wallet extensions have loaded
   setTimeout(() => {
-    safeWalletProvider.detectProviders();
+    try {
+      SafeWalletProviderManager.getInstance().refreshProviders();
+    } catch (error) {
+      console.error('Failed to detect wallet providers:', error);
+    }
   }, 100);
 }
 
-export default safeWalletProvider; 
+export default safeWalletProvider;

@@ -373,15 +373,32 @@ app.post('/api/generate-image', async (req, res) => {
 // Venice AI Chat API endpoint
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, model = 'gpt-3.5-turbo' } = req.body;
+    const { message, messages, model = 'default', max_tokens = 1000, temperature = 0.7, stream = false } = req.body;
     const apiToken = req.headers.authorization?.replace('Bearer ', '') || process.env.VITE_VENICE_CHAT_API_KEY;
 
     if (!apiToken) {
       return res.status(401).json({ error: 'API token is required. Please set VITE_VENICE_CHAT_API_KEY in your .env file.' });
     }
 
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+    // Support both simple message and complex messages array
+    let requestMessages;
+    if (messages) {
+      requestMessages = messages;
+    } else if (message) {
+      requestMessages = [{ role: 'user', content: message }];
+    } else {
+      return res.status(400).json({ error: 'Message or messages array is required' });
+    }
+
+    const requestBody = {
+      model: model,
+      messages: requestMessages,
+      max_tokens: max_tokens,
+      temperature: temperature
+    };
+
+    if (stream) {
+      requestBody.stream = true;
     }
 
     const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
@@ -390,26 +407,40 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiToken}`,
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.7
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Venice Chat API error: ${error.error?.message || error.message || 'Unknown error'}`);
+      const error = await response.text();
+      return res.status(response.status).json({ error: `Venice Chat API error: ${error}` });
     }
 
-    const data = await response.json();
-    res.json(data);
+    if (stream) {
+      // Forward streaming response
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      // Use response.body directly with node-fetch v3
+      if (!response.body) {
+        return res.status(500).json({ error: 'Failed to read streaming response' });
+      }
+
+      // Pipe the response body directly to the client
+      response.body.pipe(res);
+      
+      response.body.on('end', () => {
+        res.end();
+      });
+      
+      response.body.on('error', (error) => {
+        console.error('Streaming error:', error);
+        res.end();
+      })
+    } else {
+      const data = await response.json();
+      res.json(data);
+    }
   } catch (error) {
     console.error('Error in chat:', error);
     res.status(500).json({ error: 'Failed to get chat response' });
@@ -597,7 +628,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Serve React app for all other routes
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
@@ -605,4 +636,4 @@ app.get('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
-}); 
+});

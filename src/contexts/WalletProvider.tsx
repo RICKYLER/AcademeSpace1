@@ -19,9 +19,8 @@ const config = createConfig({
     [base.id]: http(),
     [zora.id]: http(),
   },
-});
+})
 
-// Set up query client
 const queryClient = new QueryClient();
 
 interface WalletProviderProps {
@@ -46,4 +45,4 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       </QueryClientProvider>
     </WagmiProvider>
   );
-}; 
+};

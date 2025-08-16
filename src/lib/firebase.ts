@@ -23,7 +23,16 @@ try {
   app = getApp();
 }
 
-const analytics = getAnalytics(app);
+// Initialize analytics only in browser environment
+let analytics;
+try {
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
+  }
+} catch (error) {
+  console.warn('Analytics initialization failed:', error);
+}
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
@@ -38,10 +47,24 @@ export const collections = {
 // Initialize anonymous auth
 export const initializeAuth = async () => {
   try {
+    // Check if auth is properly configured
+    if (!auth) {
+      throw new Error('Firebase auth not initialized');
+    }
+    
     const userCredential = await signInAnonymously(auth);
+    console.log('Firebase auth successful:', userCredential.user?.uid);
     return userCredential.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error initializing auth:', error);
+    
+    // Provide more specific error information
+    if (error.code === 'auth/configuration-not-found') {
+      console.error('Firebase configuration not found. Check your Firebase project settings.');
+    } else if (error.code === 'auth/network-request-failed') {
+      console.error('Network error. Check your internet connection.');
+    }
+    
     return null;
   }
 };
@@ -155,4 +178,4 @@ export const setTypingStatus = async (typingData: {
   }
 };
 
-export { app, analytics, db, auth }; 
+export { app, analytics, db, auth };

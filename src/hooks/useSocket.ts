@@ -58,6 +58,10 @@ export const useSocket = (): UseSocketReturn => {
         const newSocket = io(SOCKET_URL, {
           transports: ['websocket', 'polling'],
           autoConnect: true,
+          timeout: 5000,
+          reconnection: true,
+          reconnectionAttempts: 3,
+          reconnectionDelay: 1000,
         });
 
         newSocket.on('connect', () => {
@@ -71,7 +75,12 @@ export const useSocket = (): UseSocketReturn => {
         });
 
         newSocket.on('connect_error', (error) => {
-          console.error('Socket connection error:', error);
+          console.warn('Socket connection error (this is normal if no socket server is running):', error.message);
+          setIsConnected(false);
+        });
+
+        newSocket.on('reconnect_failed', () => {
+          console.warn('Socket reconnection failed - continuing without real-time features');
           setIsConnected(false);
         });
 
@@ -228,4 +237,4 @@ export const useSocket = (): UseSocketReturn => {
   };
 };
 
-export default useSocket; 
+export default useSocket;

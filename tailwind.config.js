@@ -61,8 +61,13 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				brand: {
+					primary: 'hsl(var(--brand-primary))',
+					secondary: 'hsl(var(--brand-secondary))',
+					accent: 'hsl(var(--brand-accent))'
+				},
 				// Custom colors for AcademeSpace
-				darkBg: '#121A25',
+				darkBg: '#121A25'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -116,4 +121,4 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
-} 
+}

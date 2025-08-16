@@ -31,3 +31,6 @@ test-real-api.js
 .env
 .env.local
 .env.backup
+
+# Local Netlify folder
+.netlify
