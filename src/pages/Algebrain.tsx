@@ -1465,7 +1465,7 @@ Engagement Level: ${userEngagement}`;
         requestBody.style_preset = selectedStyle;
       }
       
-      const response = await fetch('https://api.venice.ai/api/v1/image/generate', {
+      const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2425,6 +2425,7 @@ ${analyzeConversationPatterns(conversationHistory)}
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${chatApiKey}`,
       },
       body: JSON.stringify({
         model: 'default',
@@ -3554,7 +3555,7 @@ Please provide a comprehensive response that addresses both the visual content o
           throw new Error('API key not configured');
         }
         
-        const testResponse = await fetch('https://api.venice.ai/api/v1/image/generate', {
+        const testResponse = await fetch('/api/generate-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
