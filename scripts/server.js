@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -422,7 +422,7 @@ app.post('/api/chat', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       
-      // Use response.body directly with node-fetch v3
+      // Using native fetch for streaming responses
       if (!response.body) {
         return res.status(500).json({ error: 'Failed to read streaming response' });
       }

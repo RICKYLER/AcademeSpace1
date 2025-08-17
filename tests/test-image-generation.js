@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // Replace this with your actual API token
 const API_TOKEN = 'YOUR_API_TOKEN_HERE'; // Replace with your OpenAI or Stability AI token

@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import fs from 'fs';
 
 // Venice AI Image Generation API token
@@ -75,4 +75,4 @@ async function generateAndSaveImage() {
   }
 }
 
-generateAndSaveImage(); 
+generateAndSaveImage();

@@ -1,6 +1,6 @@
 // Test Forge API for Algebrain AI
 import dotenv from 'dotenv';
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // Load environment variables
 dotenv.config();

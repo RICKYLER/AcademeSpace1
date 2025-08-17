@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import fs from 'fs';
 import { VENICE_CONFIG, getVeniceConfig, validateApiToken } from './venice-config.js';
 import dotenv from 'dotenv';
@@ -205,4 +205,4 @@ async function runDualDemo() {
 }
 
 // Run the demo
-runDualDemo().catch(console.error); 
+runDualDemo().catch(console.error);

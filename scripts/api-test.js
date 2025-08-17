@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import readline from 'readline';
 
 const rl = readline.createInterface({
@@ -100,4 +100,4 @@ fetch('http://localhost:3001/api/health')
     console.log('❌ Server is not running');
     console.log('💡 Start the server first: node server.js');
     rl.close();
-  }); 
+  });

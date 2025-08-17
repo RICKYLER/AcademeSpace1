@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // Venice AI Chat API token
 const VENICE_CHAT_API_TOKEN = process.env.VITE_VENICE_CHAT_API_KEY || 'utYea00v2M_igCI7uKOwpj7i3pamq7qpX14TJlJGpB';
@@ -53,4 +53,4 @@ async function testVeniceChat() {
   }
 }
 
-testVeniceChat(); 
+testVeniceChat();

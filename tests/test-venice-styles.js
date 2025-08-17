@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -68,4 +68,4 @@ async function testVeniceStyles() {
   }
 }
 
-testVeniceStyles(); 
+testVeniceStyles();

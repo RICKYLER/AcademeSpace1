@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // Venice AI Image Generation API token
 const VENICE_API_TOKEN = process.env.VITE_VENICE_IMAGE_API_KEY || 'TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1';
@@ -62,4 +62,4 @@ async function testVeniceDirect() {
   }
 }
 
-testVeniceDirect(); 
+testVeniceDirect();

@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 import fs from 'fs';
 import dotenv from 'dotenv';
 
@@ -119,4 +119,4 @@ async function testVeniceUpscale() {
   }
 }
 
-testVeniceUpscale(); 
+testVeniceUpscale();

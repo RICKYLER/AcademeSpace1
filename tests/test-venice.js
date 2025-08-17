@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // Venice AI API token
 const VENICE_API_TOKEN = 'utYea00v2M_igCI7uKOwpj7i3pamq7qpX14TJlJGpB';
@@ -61,4 +61,4 @@ fetch('http://localhost:3001/api/health')
   .catch(() => {
     console.log('❌ Server is not running');
     console.log('💡 Start the server first: node server.js');
-  }); 
+  });

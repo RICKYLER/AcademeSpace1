@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Using native fetch (Node.js 18+)
 
 // DEMO: Replace this with your actual API token
 const DEMO_API_TOKEN = 'sk-your-actual-api-token-here';
@@ -32,4 +32,4 @@ async function demoGenerate() {
   console.log('   Open http://localhost:3001/ai-image-generator in your browser');
 }
 
-demoGenerate(); 
+demoGenerate();
