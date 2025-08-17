@@ -1,11 +1,8 @@
 {
   "name": "academespace-netlify-functions",
   "version": "1.0.0",
-  "description": "Netlify Functions for AcademeSpace backend",
-  "type": "module",
+  "description": "Netlify Functions for AcademeSpace AI APIs",
   "dependencies": {
-    "node-fetch": "^3.3.2",
-    "firebase": "^12.1.0",
-    "dotenv": "^17.2.1"
+    "node-fetch": "^2.7.0"
   }
 }

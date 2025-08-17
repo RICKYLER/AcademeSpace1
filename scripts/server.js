@@ -335,7 +335,8 @@ app.post('/api/generate-image', async (req, res) => {
     const { prompt, size, style, apiProvider = 'openai' } = req.body;
     const apiToken = req.headers.authorization?.replace('Bearer ', '');
 
-    if (!apiToken) {
+    // Only require token for providers that don't have environment variables configured
+    if (!apiToken && apiProvider !== 'venice') {
       return res.status(401).json({ error: 'API token is required' });
     }
 

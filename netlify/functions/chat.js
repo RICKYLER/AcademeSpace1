@@ -1,7 +1,6 @@
-// Venice AI Chat API endpoint for Netlify Functions
-import fetch from 'node-fetch';
+const fetch = require('node-fetch');
 
-export const handler = async (event, context) => {
+const handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -9,12 +8,13 @@ export const handler = async (event, context) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
     };
   }
 
+  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -92,7 +92,7 @@ export const handler = async (event, context) => {
 
     if (stream) {
       // For streaming responses, we need to handle differently in serverless
-      // For now, return non-streaming response
+      // For now, we'll disable streaming in Netlify Functions
       const data = await response.json();
       return {
         statusCode: 200,
@@ -121,7 +121,9 @@ export const handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
+      body: JSON.stringify({ error: 'Failed to get chat response' })
+    }
   }
 };
+
+module.exports = { handler };

@@ -1333,61 +1333,10 @@ Engagement Level: ${userEngagement}`;
         audioRef.current = null;
       }
 
-      // New abort controller for this request
-      const controller = new AbortController();
-      veniceTTSAbortRef.current = controller;
-
-      const response = await fetch('https://api.venice.ai/api/v1/audio/speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          input: text.substring(0, 4096),
-          model: 'tts-kokoro',
-          voice: 'af_sky',
-          response_format: 'mp3',
-          speed: 1.0,
-          streaming: false,
-        }),
-      });
-
-      if (response.ok) {
-        // Clear the controller on success of fetch
-        if (veniceTTSAbortRef.current === controller) veniceTTSAbortRef.current = null;
-
-        const audioBlob = await response.blob();
-        const url = URL.createObjectURL(audioBlob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-
-        setIsPlaying(true);
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(url);
-          if (audioRef.current === audio) audioRef.current = null;
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(url);
-          if (audioRef.current === audio) audioRef.current = null;
-          tryBrowserTTS(text);
-        };
-
-        await audio.play();
-        return;
-      }
+      // Use browser TTS directly since Venice AI audio endpoint is not available in production
+      console.log('Using browser TTS for audio playback');
     } catch (err: any) {
-      // If it was aborted, just return silently
-      if (err?.name === 'AbortError') return;
-      // fall through to browser TTS
-    } finally {
-      // Ensure we clear the abort controller if this instance is done
-      if (veniceTTSAbortRef.current?.signal.aborted) {
-        veniceTTSAbortRef.current = null;
-      }
+      console.log('Falling back to browser TTS:', err);
     }
 
     // Browser TTS fallback
@@ -1469,9 +1418,13 @@ Engagement Level: ${userEngagement}`;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          prompt: requestBody.prompt,
+          size: '1024x1024',
+          style: selectedStyle || 'realistic',
+          apiProvider: 'venice'
+        }),
       });
 
       if (!response.ok) {
@@ -1545,47 +1498,14 @@ Engagement Level: ${userEngagement}`;
     return data.data[0].url;
   };
 
-  // Image upscale and enhance function
+  // Image upscale and enhance function (disabled for Netlify deployment)
   const upscaleAndEnhanceImage = async (imageUrl: string, scale: number = 2, enhance: boolean = true, enhancePrompt?: string) => {
     try {
-      console.log('Upscaling and enhancing image...');
+      console.log('Upscale feature disabled for Netlify deployment - returning original image');
       
-      const apiKey = import.meta.env.VITE_VENICE_IMAGE_API_KEY || import.meta.env.VITE_PHOTO_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Venice AI API key not configured. Please set VITE_VENICE_IMAGE_API_KEY in your .env file.');
-      }
-
-      // Convert data URL to base64
-      const base64Data = imageUrl.split(',')[1];
-      
-      const response = await fetch('https://api.venice.ai/api/v1/image/upscale', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          image: base64Data,
-          scale: scale,
-          enhance: enhance,
-          enhanceCreativity: 0.5,
-          enhancePrompt: enhancePrompt || 'enhance quality, improve details, sharpen'
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Venice AI Upscale API failed:', errorText);
-        throw new Error(`Image upscale failed with status ${response.status}: ${errorText}`);
-      }
-
-      // The upscale API returns the image directly as binary data
-      const imageBlob = await response.blob();
-      const enhancedImageUrl = URL.createObjectURL(imageBlob);
-      
-      console.log('Image upscaled and enhanced successfully!');
-      return enhancedImageUrl;
+      // Return the original image since upscale requires direct Venice AI API access
+      // which is not available in the Netlify serverless environment
+      return imageUrl;
       
     } catch (error) {
       console.error('Image upscale error:', error);
@@ -1593,7 +1513,7 @@ Engagement Level: ${userEngagement}`;
     }
   };
 
-  // Image edit (inpaint) function
+  // Image edit (inpaint) function (disabled for Netlify deployment)
   const editImage = async (imageUrl: string, editPrompt: string, options?: {
     mask?: string; // Base64 encoded mask for selective editing
     strength?: number; // Edit strength (0-1, default 0.8)
@@ -1601,83 +1521,12 @@ Engagement Level: ${userEngagement}`;
     num_inference_steps?: number; // Number of inference steps (1-50, default 20)
   }) => {
     try {
-      console.log('Editing image with prompt:', editPrompt, 'options:', options);
+      console.log('Image edit feature disabled for Netlify deployment - returning original image');
+      console.log('Edit prompt was:', editPrompt, 'options:', options);
       
-      const apiKey = import.meta.env.VITE_VENICE_IMAGE_API_KEY || import.meta.env.VITE_PHOTO_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Venice AI API key not configured. Please set VITE_VENICE_IMAGE_API_KEY in your .env file.');
-      }
-
-      // Convert data URL to base64
-      const base64Data = imageUrl.split(',')[1];
-      
-      // Prepare request body according to Venice AI Edit API specification
-      const requestBody: any = {
-        prompt: editPrompt,
-        image: base64Data
-      };
-
-      // Add optional parameters if provided
-      if (options?.mask) {
-        requestBody.mask = options.mask;
-      }
-      if (options?.strength !== undefined) {
-        requestBody.strength = Math.max(0, Math.min(1, options.strength)); // Clamp between 0-1
-      }
-      if (options?.guidance_scale !== undefined) {
-        requestBody.guidance_scale = Math.max(1, Math.min(20, options.guidance_scale)); // Clamp between 1-20
-      }
-      if (options?.num_inference_steps !== undefined) {
-        requestBody.num_inference_steps = Math.max(1, Math.min(50, options.num_inference_steps)); // Clamp between 1-50
-      }
-      
-      console.log('Sending edit request to Venice AI with body:', {
-        prompt: requestBody.prompt,
-        hasMask: !!requestBody.mask,
-        strength: requestBody.strength,
-        guidance_scale: requestBody.guidance_scale,
-        num_inference_steps: requestBody.num_inference_steps
-      });
-      
-      const response = await fetch('https://api.venice.ai/api/v1/image/edit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Venice AI Edit API failed:', errorText);
-        
-        // Provide more specific error messages based on status codes
-        let errorMessage = `Image edit failed with status ${response.status}`;
-        if (response.status === 400) {
-          errorMessage = 'Invalid request parameters. Please check your prompt and image format.';
-        } else if (response.status === 401) {
-          errorMessage = 'Authentication failed. Please check your API key.';
-        } else if (response.status === 402) {
-          errorMessage = 'Payment required. Please check your Venice AI account balance.';
-        } else if (response.status === 415) {
-          errorMessage = 'Unsupported media type. Please use a valid image format (JPEG, PNG, WebP).';
-        } else if (response.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
-        } else if (response.status >= 500) {
-          errorMessage = 'Server error. Please try again later.';
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // The edit API returns the image directly as binary data
-      const imageBlob = await response.blob();
-      const editedImageUrl = URL.createObjectURL(imageBlob);
-      
-      console.log('Image edited successfully!');
-      return editedImageUrl;
+      // Return the original image since edit requires direct Venice AI API access
+      // which is not available in the Netlify serverless environment
+      return imageUrl;
       
     } catch (error) {
       console.error('Image edit error:', error);
@@ -1685,37 +1534,13 @@ Engagement Level: ${userEngagement}`;
     }
   };
 
-  // Get available image styles with enhanced realistic options
+  // Get available image styles with enhanced realistic options (static list for Netlify deployment)
   const getImageStyles = async () => {
     try {
-      console.log('Fetching available image styles...');
+      console.log('Using static image styles list for Netlify deployment');
       
-      const apiKey = import.meta.env.VITE_VENICE_IMAGE_API_KEY || import.meta.env.VITE_PHOTO_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Venice AI API key not configured. Please set VITE_VENICE_IMAGE_API_KEY in your .env file.');
-      }
-
-      const response = await fetch('https://api.venice.ai/api/v1/image/styles', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Venice AI Styles API failed:', errorText);
-        throw new Error(`Styles fetch failed with status ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Available styles fetched successfully!');
-      
-      // Get API styles and enhance with realistic options
-      const apiStyles = data.data || [];
-      
-      // Enhanced realistic styles to prioritize
+      // Static list of enhanced realistic styles since Venice AI API is not available
+      // in the Netlify serverless environment
       const realisticStyles = [
         'Photographic',
         'Realistic',
@@ -1785,17 +1610,11 @@ Engagement Level: ${userEngagement}`;
         'Museum Quality'
       ];
       
-      // Combine API styles with realistic styles, prioritizing realistic ones
-      const allStyles = [...realisticStyles, ...apiStyles];
-      
-      // Remove duplicates while preserving order
-      const uniqueStyles = allStyles.filter((style, index) => allStyles.indexOf(style) === index);
-      
-      return uniqueStyles;
+      return realisticStyles;
       
     } catch (error) {
       console.error('Styles fetch error:', error);
-      // Return enhanced default styles if API fails
+      // Return basic default styles if anything fails
       return [
         'Photographic',
         'Realistic',
@@ -2425,7 +2244,6 @@ ${analyzeConversationPatterns(conversationHistory)}
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${chatApiKey}`,
       },
       body: JSON.stringify({
         model: 'default',
@@ -3559,7 +3377,6 @@ Please provide a comprehensive response that addresses both the visual content o
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             prompt: 'A simple test image',

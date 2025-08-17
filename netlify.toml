@@ -2,18 +2,21 @@
   publish = "dist"
   command = "npm run build"
   functions = "netlify/functions"
+  
+[functions]
+  external_node_modules = ["node-fetch"]
+  included_files = ["netlify/functions/**"]
+  
+[functions."*"]
+  node_bundler = "esbuild"
+  external = ["fetch-blob", "formdata-polyfill"]
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--production=false"
   CI = "true"
 
-# API redirects to Netlify Functions
-[[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/health"
-  status = 200
-
+# API redirects for Netlify Functions
 [[redirects]]
   from = "/api/chat"
   to = "/.netlify/functions/chat"
@@ -22,6 +25,11 @@
 [[redirects]]
   from = "/api/generate-image"
   to = "/.netlify/functions/generate-image"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
   status = 200
 
 # Catch-all redirect for SPA

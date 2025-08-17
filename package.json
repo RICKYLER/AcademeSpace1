@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "server": "node server.js",
     "start": "npm run build && npm run server",
-    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
+    "deploy:netlify": "node scripts/netlify-deploy-new.js",
+    "deploy:netlify:cli": "node scripts/netlify-deploy-new.js --cli"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -59,7 +61,7 @@
     "lightweight-charts": "^5.0.8",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.4.6",
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.1",
