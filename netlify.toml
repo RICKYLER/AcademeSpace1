@@ -8,8 +8,6 @@
   CI = "true"
   NETLIFY_CACHE_NEXTJS = "false"
   NETLIFY_SKIP_EDGE_HANDLERS_CACHE = "true"
-  functions = "netlify/functions"
-  ignore = "false"
   
 [functions]
   external_node_modules = []
