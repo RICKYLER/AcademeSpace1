@@ -8,8 +8,6 @@
   CI = "true"
   NETLIFY_CACHE_NEXTJS = "false"
   NETLIFY_SKIP_EDGE_HANDLERS_CACHE = "true"
-  ROLLUP_NO_NATIVE = "true"
-  NPM_CONFIG_IGNORE_OPTIONAL = "true"
   
 [functions]
   external_node_modules = []
