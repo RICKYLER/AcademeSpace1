@@ -3,11 +3,13 @@
   command = "npm ci && npm run build"
   
 [build.environment]
-  NODE_VERSION = "20.19.0"
+  NODE_VERSION = "20"
   NPM_FLAGS = "--production=false"
   CI = "true"
   NETLIFY_CACHE_NEXTJS = "false"
   NETLIFY_SKIP_EDGE_HANDLERS_CACHE = "true"
+  ROLLUP_NO_NATIVE = "true"
+  NPM_CONFIG_IGNORE_OPTIONAL = "true"
   
 [functions]
   external_node_modules = []
