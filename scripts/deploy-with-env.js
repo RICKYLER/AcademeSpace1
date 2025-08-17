@@ -27,7 +27,7 @@ const requiredEnvVars = {
   'VITE_VENICE_API_KEY_CHAT': 'TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1',
   'VITE_VENICE_API_KEY_IMAGE': 'TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1',
   'VITE_PHOTO_GENERATION_API_ENDPOINT': 'https://api.openai.com/v1/images/generations',
-  'VITE_WALLETCONNECT_PROJECT_ID': 'demo-project-id',
+  'VITE_WALLETCONNECT_PROJECT_ID': 'a1b2c3d4e5f6789012345678901234567890abcd',
   'VITE_SOCKET_IO_SERVER_URL': 'https://your-production-server.com'
 };
 

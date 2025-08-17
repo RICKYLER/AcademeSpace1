@@ -89,7 +89,7 @@ function displayEnvironmentVariables() {
     'VITE_VENICE_IMAGE_API_KEY=TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1',
     'VITE_VENICE_CHAT_API_KEY=utYea00v2M_igCI7uKOwpj7i3pamq7qpX14TJlJGpB',
     'VITE_PHOTO_API_KEY=TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1',
-    'VITE_WALLETCONNECT_PROJECT_ID=demo-project-id',
+    'VITE_WALLETCONNECT_PROJECT_ID=a1b2c3d4e5f6789012345678901234567890abcd',
     'VITE_SOCKET_URL=https://your-backend-url.com',
     'VITE_FORGE_KEY=your-forge-api-key',
     'VITE_VENICE_AI_API_KEY=TdGumCtlLvzyZWfLHhjOziUSsH0yeaLQc8zFXPULH1'

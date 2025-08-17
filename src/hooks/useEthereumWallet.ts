@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ethers } from 'ethers';
-import safeWalletProvider from '../utils/safeWalletProvider';
+import { SafeWalletProviderManager } from '../utils/safeWalletProvider';
 
 interface WalletState {
   account: string | null;
@@ -27,7 +27,8 @@ export const useEthereumWallet = () => {
 
     try {
       // Use the safe wallet provider
-      const accounts = await safeWalletProvider.requestAccounts();
+      const safeManager = SafeWalletProviderManager.getInstance();
+      const accounts = await safeManager.requestAccounts();
       
       if (accounts.length === 0) {
         throw new Error('No accounts found');
@@ -36,16 +37,19 @@ export const useEthereumWallet = () => {
       const account = accounts[0];
       
       // Get balance using the safe provider
-      const balanceHex = await safeWalletProvider.getBalance(account);
+      const balanceHex = await safeManager.getBalance(account);
       const balance = ethers.parseUnits(balanceHex, 'wei');
       const formattedBalance = parseFloat(ethers.formatEther(balance)).toFixed(4);
 
       // Try to resolve ENS name
       let ensName = null;
       try {
-        // Create a provider for ENS resolution
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        ensName = await provider.lookupAddress(account);
+        // Create a provider for ENS resolution using the safe provider
+        const activeProvider = safeManager.getActiveProvider();
+        if (activeProvider) {
+          const provider = new ethers.BrowserProvider(activeProvider);
+          ensName = await provider.lookupAddress(account);
+        }
       } catch (error) {
         // ENS resolution failed, which is fine
         console.log('ENS resolution failed:', error);
@@ -91,10 +95,11 @@ export const useEthereumWallet = () => {
     };
 
     // Set up event listeners using the safe provider
-    safeWalletProvider.setupEventListeners(handleAccountsChanged);
+    const safeManager = SafeWalletProviderManager.getInstance();
+    safeManager.setupEventListeners(handleAccountsChanged);
 
     return () => {
-      safeWalletProvider.removeEventListeners(handleAccountsChanged);
+      safeManager.removeEventListeners(handleAccountsChanged);
     };
   }, [disconnectWallet]);
 

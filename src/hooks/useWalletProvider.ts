@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { SafeWalletProviderManager } from '../utils/safeWalletProvider';
 
 interface WalletProvider {
   name: string;
@@ -16,46 +17,41 @@ export const useWalletProvider = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Safely check for wallet providers
+  // Safely check for wallet providers using SafeWalletProviderManager
   const detectProviders = useCallback(() => {
     const detectedProviders: WalletProvider[] = [];
+    const safeManager = SafeWalletProviderManager.getInstance();
+    const availableProviders = safeManager.getAvailableProviders();
 
-    // Check for MetaMask
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const metamaskProvider: WalletProvider = {
-        name: 'MetaMask',
-        isAvailable: true,
+    availableProviders.forEach(providerInfo => {
+      const walletProvider: WalletProvider = {
+        name: providerInfo.name,
+        isAvailable: providerInfo.isAvailable,
         connect: async () => {
           try {
-            const accounts = await window.ethereum.request({
-              method: 'eth_requestAccounts'
-            });
+            const accounts = await safeManager.requestAccounts();
             return accounts;
           } catch (error) {
-            console.error('MetaMask connection error:', error);
+            console.error(`${providerInfo.name} connection error:`, error);
             throw error;
           }
         },
         disconnect: () => {
           setAccounts([]);
           setSelectedProvider(null);
+          safeManager.removeAccountsChangedListener();
         },
         getAccounts: async () => {
           try {
-            return await window.ethereum.request({
-              method: 'eth_accounts'
-            });
+            return await safeManager.requestAccounts();
           } catch (error) {
-            console.error('Error getting MetaMask accounts:', error);
+            console.error(`Error getting ${providerInfo.name} accounts:`, error);
             return [];
           }
         },
         getBalance: async (address: string) => {
           try {
-            const balance = await window.ethereum.request({
-              method: 'eth_getBalance',
-              params: [address, 'latest']
-            });
+            const balance = await safeManager.getBalance(address);
             return balance;
           } catch (error) {
             console.error('Error getting balance:', error);
@@ -63,54 +59,8 @@ export const useWalletProvider = () => {
           }
         }
       };
-      detectedProviders.push(metamaskProvider);
-    }
-
-    // Check for other wallet providers (Coinbase Wallet, etc.)
-    if (typeof window !== 'undefined' && (window as any).coinbaseWalletExtension) {
-      const coinbaseProvider: WalletProvider = {
-        name: 'Coinbase Wallet',
-        isAvailable: true,
-        connect: async () => {
-          try {
-            const accounts = await (window as any).coinbaseWalletExtension.request({
-              method: 'eth_requestAccounts'
-            });
-            return accounts;
-          } catch (error) {
-            console.error('Coinbase Wallet connection error:', error);
-            throw error;
-          }
-        },
-        disconnect: () => {
-          setAccounts([]);
-          setSelectedProvider(null);
-        },
-        getAccounts: async () => {
-          try {
-            return await (window as any).coinbaseWalletExtension.request({
-              method: 'eth_accounts'
-            });
-          } catch (error) {
-            console.error('Error getting Coinbase accounts:', error);
-            return [];
-          }
-        },
-        getBalance: async (address: string) => {
-          try {
-            const balance = await (window as any).coinbaseWalletExtension.request({
-              method: 'eth_getBalance',
-              params: [address, 'latest']
-            });
-            return balance;
-          } catch (error) {
-            console.error('Error getting balance:', error);
-            return '0';
-          }
-        }
-      };
-      detectedProviders.push(coinbaseProvider);
-    }
+      detectedProviders.push(walletProvider);
+    });
 
     setProviders(detectedProviders);
   }, []);
@@ -125,12 +75,11 @@ export const useWalletProvider = () => {
       setAccounts(accounts);
       setSelectedProvider(provider);
       
-      // Listen for account changes
-      if (window.ethereum) {
-        window.ethereum.on('accountsChanged', (newAccounts: string[]) => {
-          setAccounts(newAccounts);
-        });
-      }
+      // Listen for account changes using SafeWalletProviderManager
+      const safeManager = SafeWalletProviderManager.getInstance();
+      safeManager.setupAccountsChangedListener((newAccounts: string[]) => {
+        setAccounts(newAccounts);
+      });
     } catch (error: any) {
       console.error('Wallet connection error:', error);
       setError(error.message || 'Failed to connect wallet');
@@ -172,4 +121,4 @@ export const useWalletProvider = () => {
   };
 };
 
-export default useWalletProvider; 
+export default useWalletProvider;

@@ -218,6 +218,9 @@ class SafeWalletProviderManager {
 // Create and export the singleton instance
 export const safeWalletProvider = SafeWalletProviderManager.getInstance();
 
+// Export the class as well for direct access
+export { SafeWalletProviderManager };
+
 // Auto-initialize when the script loads
 if (typeof window !== 'undefined') {
   // Small delay to ensure wallet extensions have loaded

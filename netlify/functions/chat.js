@@ -1,129 +1,181 @@
-const fetch = require('node-fetch');
+const https = require('https');
+const querystring = require('querystring');
 
-const handler = async (event, context) => {
-  // Handle CORS preflight requests
+exports.handler = async (event, context) => {
+  // Set CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
+      headers,
       body: ''
     };
   }
 
-  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
-    const { message, messages, model = 'default', max_tokens = 1000, temperature = 0.7, stream = false } = JSON.parse(event.body);
-    const apiToken = event.headers.authorization?.replace('Bearer ', '') || process.env.VITE_VENICE_CHAT_API_KEY;
+    const { message, stream = false } = JSON.parse(event.body || '{}');
 
-    if (!apiToken) {
-      return {
-        statusCode: 401,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ error: 'API token is required. Please set VITE_VENICE_CHAT_API_KEY in your environment variables.' })
-      };
-    }
-
-    // Support both simple message and complex messages array
-    let requestMessages;
-    if (messages) {
-      requestMessages = messages;
-    } else if (message) {
-      requestMessages = [{ role: 'user', content: message }];
-    } else {
+    if (!message) {
       return {
         statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ error: 'Message or messages array is required' })
+        headers,
+        body: JSON.stringify({ error: 'Message is required' })
       };
     }
 
-    const requestBody = {
-      model: model,
-      messages: requestMessages,
-      max_tokens: max_tokens,
-      temperature: temperature
-    };
-
-    if (stream) {
-      requestBody.stream = true;
+    const apiKey = process.env.VENICE_API_KEY;
+    if (!apiKey) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'API key not configured' })
+      };
     }
 
-    const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
+    const requestData = JSON.stringify({
+      model: 'claude-3-5-sonnet-20241022',
+      messages: [{ role: 'user', content: message }],
+      max_tokens: 1000,
+      stream: stream
+    });
+
+    const options = {
+      hostname: 'api.venice.ai',
+      port: 443,
+      path: '/api/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      return {
-        statusCode: response.status,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ error: `Venice Chat API error: ${error}` })
-      };
-    }
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(requestData)
+      }
+    };
 
     if (stream) {
-      // For streaming responses, we need to handle differently in serverless
-      // For now, we'll disable streaming in Netlify Functions
-      const data = await response.json();
-      return {
-        statusCode: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      };
+      // Handle streaming response
+      return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+          let responseData = '';
+          
+          res.on('data', (chunk) => {
+            responseData += chunk.toString();
+          });
+          
+          res.on('end', () => {
+            try {
+              // Parse streaming response
+              const lines = responseData.split('\n').filter(line => line.trim());
+              let fullContent = '';
+              
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') break;
+                  
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                      fullContent += parsed.choices[0].delta.content;
+                    }
+                  } catch (e) {
+                    // Skip invalid JSON lines
+                  }
+                }
+              }
+              
+              resolve({
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ 
+                  choices: [{ 
+                    message: { 
+                      role: 'assistant', 
+                      content: fullContent || 'No response generated' 
+                    } 
+                  }] 
+                })
+              });
+            } catch (error) {
+              resolve({
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to parse streaming response' })
+              });
+            }
+          });
+        });
+        
+        req.on('error', (error) => {
+          resolve({
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Request failed: ' + error.message })
+          });
+        });
+        
+        req.write(requestData);
+        req.end();
+      });
     } else {
-      const data = await response.json();
-      return {
-        statusCode: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      };
+      // Handle non-streaming response
+      return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+          let responseData = '';
+          
+          res.on('data', (chunk) => {
+            responseData += chunk.toString();
+          });
+          
+          res.on('end', () => {
+            try {
+              const response = JSON.parse(responseData);
+              resolve({
+                statusCode: 200,
+                headers,
+                body: JSON.stringify(response)
+              });
+            } catch (error) {
+              resolve({
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to parse response' })
+              });
+            }
+          });
+        });
+        
+        req.on('error', (error) => {
+          resolve({
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Request failed: ' + error.message })
+          });
+        });
+        
+        req.write(requestData);
+        req.end();
+      });
     }
   } catch (error) {
-    console.error('Error in chat function:', error);
     return {
       statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ error: 'Failed to get chat response' })
-    }
+      headers,
+      body: JSON.stringify({ error: 'Internal server error: ' + error.message })
+    };
   }
 };
-
-module.exports = { handler };
